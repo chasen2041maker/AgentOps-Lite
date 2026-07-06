@@ -74,6 +74,8 @@ groundguard-benchmark
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
 `groundguard`. Latest PyPI release: `0.2.4`.
+The main branch is preparing `0.3.0` with the new `FactGate` runtime API and
+report renderers.
 
 ## 10-Second Demo
 
@@ -122,12 +124,17 @@ omitted_required: 0
 - `grounded_generate()` with report return, blocking, conservative stripping,
   optional tagged-claim repair, and one-shot reask.
 - `@grounded(...)` decorator for framework-free Python functions.
+- `FactGate` high-level runtime API for config-driven record/check flows.
 - `groundguard-report` CLI with native and assertion-style JSON schemas,
-  including per-claim `componentResults`.
+  including per-claim `componentResults`, Markdown, HTML, and GitHub comment
+  renderers.
+- Built-in extractor packs for finance, SaaS, ecommerce, and ops metrics.
 - Dedicated promptfoo and DeepEval adapter helpers.
+- Dependency-free OpenTelemetry-style event export.
 - OpenAI-compatible wrapper, LangChain-compatible callback, and LangGraph-style
   node examples.
 - A composite GitHub Action for CI fact gates.
+- A tiny dependency-free HTTP server entrypoint for gateway-style checks.
 
 ## Installation
 
@@ -312,6 +319,30 @@ realistic_dataset.false_negatives: 0
 
 ## CLI
 
+For application code, the shortest stable entrypoint is `FactGate`:
+
+```python
+from decimal import Decimal
+
+from groundguard import FactGate
+
+gate = FactGate(session_id="req_001")
+gate.record_fact(
+    key="revenue_2025",
+    value=Decimal("3830000000"),
+    unit="USD",
+    source_tool="finance_api",
+    source_call_id="call_1",
+)
+
+report = gate.check(
+    "Revenue was $3.83 billion [fact:revenue_2025].",
+    required_fact_keys=["revenue_2025"],
+)
+
+assert report.passed
+```
+
 Generate a JSON coverage report from a ledger JSONL file and an answer file:
 
 ```bash
@@ -354,6 +385,36 @@ The assertion schema includes `pass`, `success`, `score`, `reason`,
 GroundGuard report under `metadata.groundguard`. Each claim exposes
 `text_span`, `start`, `end`, `status`, and `diff` for downstream UI
 highlighting.
+
+Render human-readable artifacts for PRs and audits:
+
+```bash
+groundguard-report \
+  --ledger-jsonl facts.jsonl \
+  --answer-file answer.txt \
+  --required-fact revenue_2025 \
+  --format markdown \
+  --output groundguard-report.md
+
+groundguard-report \
+  --ledger-jsonl facts.jsonl \
+  --answer-file answer.txt \
+  --format html \
+  --output groundguard-report.html
+```
+
+`groundguard.yml` can also select scoped extractor packs:
+
+```yaml
+extractors:
+  packs:
+    - finance
+    - saas
+    - ops
+report:
+  schema: assertion
+  format: github
+```
 
 ## GitHub Action
 

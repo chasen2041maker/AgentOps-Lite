@@ -89,7 +89,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.2.4`。
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.2.4`；main 分支正在准备 `0.3.0`，包含新的 `FactGate` runtime API 和报告渲染器。
 
 ```bash
 python -m pip install groundguard-ai
@@ -229,6 +229,47 @@ groundguard-report \
 
 assertion schema 包含 `pass`、`success`、`score`、`reason`、`namedScores`，并提供带 `text_span`、`start`、`end`、`status`、`diff` 的顶层 `claims` 列表，方便下游 UI 精确高亮每条声明；完整 GroundGuard 报告放在 `metadata.groundguard`。
 现在还会输出 per-claim `componentResults`，promptfoo / DeepEval 可以直接把每条 claim 当成可解释的子结果使用。
+
+## FactGate API
+
+如果是在应用代码里接入，推荐优先使用 `FactGate` 这个高层入口：
+
+```python
+from decimal import Decimal
+
+from groundguard import FactGate
+
+gate = FactGate(session_id="req_001")
+gate.record_fact(
+    key="revenue_2025",
+    value=Decimal("3830000000"),
+    unit="USD",
+    source_tool="finance_api",
+    source_call_id="call_1",
+)
+
+report = gate.check(
+    "Revenue was $3.83 billion [fact:revenue_2025].",
+    required_fact_keys=["revenue_2025"],
+)
+
+assert report.passed
+```
+
+`groundguard.yml` 现在也支持按场景启用 extractor packs：
+
+```yaml
+extractors:
+  packs:
+    - finance
+    - saas
+    - ops
+report:
+  schema: assertion
+  format: github
+```
+
+`groundguard-report --format markdown|html|github` 可以生成 Markdown、HTML 或 GitHub PR 评论格式的报告。
 
 ## GitHub Action
 

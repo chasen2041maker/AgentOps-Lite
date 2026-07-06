@@ -11,6 +11,11 @@ from groundguard.core.ledger import Ledger
 from groundguard.core.models import CoverageReport
 from groundguard.core.policy import Policy
 from groundguard.core.config import load_config
+from groundguard.report import (
+    render_github_pr_comment,
+    render_html_report,
+    render_markdown_report,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -34,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     required_facts = list(config.required_facts if config else [])
     required_facts.extend(args.required_fact)
     schema = args.schema or (config.report.schema if config else "groundguard")
+    output_format = args.format or (config.report.format if config else "json")
     fail_on_policy = args.fail_on_policy or (
         config.report.fail_on_policy if config else False
     )
@@ -42,12 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         required_fact_keys=required_facts,
         policy=policy,
     )
-    payload = (
-        report_to_assertion_dict(report)
-        if schema == "assertion"
-        else report_to_dict(report)
-    )
-    output = json.dumps(payload, ensure_ascii=False, indent=2)
+    output = _render_report(report, schema=schema, output_format=output_format)
     if args.output:
         Path(args.output).write_text(f"{output}\n", encoding="utf-8")
     else:
@@ -128,6 +129,12 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--format",
+        choices=["json", "markdown", "html", "github"],
+        default=None,
+        help="Output format. JSON preserves the selected schema; other formats render a human report.",
+    )
+    parser.add_argument(
         "--allow-candidate-matches",
         action="store_true",
         help="Allow candidate numeric matches to cover required facts.",
@@ -138,6 +145,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Exit with status 1 when the evaluated policy does not pass.",
     )
     return parser
+
+
+def _render_report(
+    report: CoverageReport,
+    *,
+    schema: str,
+    output_format: str,
+) -> str:
+    if output_format == "markdown":
+        return render_markdown_report(report).rstrip()
+    if output_format == "html":
+        return render_html_report(report).rstrip()
+    if output_format == "github":
+        return render_github_pr_comment(report).rstrip()
+    payload = (
+        report_to_assertion_dict(report)
+        if schema == "assertion"
+        else report_to_dict(report)
+    )
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def _coverage_score(report: CoverageReport) -> float:

@@ -10,6 +10,12 @@ policy:
   on_unverified: block
   on_contradicted: block
   on_omitted_required: block
+extractors:
+  packs:
+    - finance
+    - saas
+    - ops
 report:
   schema: assertion
+  format: json
   fail_on_policy: true

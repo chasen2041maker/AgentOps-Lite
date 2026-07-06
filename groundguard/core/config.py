@@ -11,13 +11,20 @@ from groundguard.core.policy import Policy
 @dataclass(frozen=True)
 class ReportConfig:
     schema: str = "groundguard"
+    format: str = "json"
     fail_on_policy: bool = False
+
+
+@dataclass(frozen=True)
+class ExtractorConfig:
+    packs: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class GroundGuardConfig:
     required_facts: list[str] = field(default_factory=list)
     policy: Policy = field(default_factory=Policy)
+    extractors: ExtractorConfig = field(default_factory=ExtractorConfig)
     report: ReportConfig = field(default_factory=ReportConfig)
 
 
@@ -35,6 +42,7 @@ def load_config(path: str | Path) -> GroundGuardConfig:
 
 def _config_from_payload(payload: dict[str, Any]) -> GroundGuardConfig:
     policy_payload = _dict_or_empty(payload.get("policy"))
+    extractor_payload = _dict_or_empty(payload.get("extractors"))
     report_payload = _dict_or_empty(payload.get("report"))
     return GroundGuardConfig(
         required_facts=[
@@ -63,8 +71,12 @@ def _config_from_payload(payload: dict[str, Any]) -> GroundGuardConfig:
                 policy_payload.get("on_omitted_required", Policy.on_omitted_required)
             ),  # type: ignore[arg-type]
         ),
+        extractors=ExtractorConfig(
+            packs=[str(item) for item in _list_or_empty(extractor_payload.get("packs"))],
+        ),
         report=ReportConfig(
             schema=str(report_payload.get("schema", "groundguard")),
+            format=str(report_payload.get("format", "json")),
             fail_on_policy=bool(report_payload.get("fail_on_policy", False)),
         ),
     )
@@ -73,22 +85,44 @@ def _config_from_payload(payload: dict[str, Any]) -> GroundGuardConfig:
 def _parse_simple_yaml(text: str) -> dict[str, Any]:
     result: dict[str, Any] = {}
     current_section: str | None = None
+    current_section_list_key: str | None = None
     for raw_line in text.splitlines():
         line = raw_line.split("#", 1)[0].rstrip()
         if not line.strip():
             continue
+        stripped = line.strip()
         if not raw_line.startswith(" ") and line.endswith(":"):
             current_section = line[:-1].strip()
+            current_section_list_key = None
             result[current_section] = [] if current_section == "required_facts" else {}
             continue
-        if current_section == "required_facts" and line.strip().startswith("- "):
-            result.setdefault(current_section, []).append(line.strip()[2:].strip())
+        if current_section == "required_facts" and stripped.startswith("- "):
+            result.setdefault(current_section, []).append(stripped[2:].strip())
+            continue
+        if (
+            current_section is not None
+            and current_section_list_key is not None
+            and stripped.startswith("- ")
+        ):
+            section = result.setdefault(current_section, {})
+            if isinstance(section, dict):
+                items = section.setdefault(current_section_list_key, [])
+                if isinstance(items, list):
+                    items.append(stripped[2:].strip())
+            continue
+        if current_section is not None and stripped.endswith(":"):
+            key = stripped[:-1].strip()
+            section = result.setdefault(current_section, {})
+            if isinstance(section, dict):
+                section[key] = []
+                current_section_list_key = key
             continue
         if current_section is not None and ":" in line:
-            key, value = line.strip().split(":", 1)
+            key, value = stripped.split(":", 1)
             section = result.setdefault(current_section, {})
             if isinstance(section, dict):
                 section[key.strip()] = _parse_scalar(value.strip())
+                current_section_list_key = None
             continue
         if ":" in line:
             key, value = line.split(":", 1)
@@ -116,4 +150,3 @@ def _dict_or_empty(value: object) -> dict[str, object]:
 
 def _list_or_empty(value: object) -> list[object]:
     return value if isinstance(value, list) else []
-

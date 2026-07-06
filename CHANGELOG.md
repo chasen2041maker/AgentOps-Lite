@@ -2,6 +2,26 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.3.0 - Unreleased
+
+### Added
+
+- Added `FactGate`, a high-level runtime API for config-driven record/check
+  flows.
+- Added built-in scoped extractor packs for finance, SaaS, ecommerce, and ops
+  metrics.
+- Added stable `groundguard.report.v1` report schema plus Markdown, HTML, and
+  GitHub PR comment renderers.
+- Added dependency-free OpenTelemetry-style event export under
+  `groundguard.integrations.otel`.
+- Added a minimal dependency-free `groundguard-server` entrypoint with
+  `POST /check` gateway-style evaluation.
+
+### Changed
+
+- `groundguard.yml` now supports `extractors.packs` and `report.format`.
+- `groundguard-report` now supports `--format json|markdown|html|github`.
+
 ## v0.2.4 - 2026-07-06
 
 ### Added
