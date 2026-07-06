@@ -1,225 +1,129 @@
-# AgentOps Lite
+# GroundGuard
 
-轻量、本地优先的 AI Agent 观测与质量评测工具。
+给会调用工具、会引用数据的 AI Agent 装一道"事实闸门"：生成阶段的每一个数字、每一条结论，都必须能追溯到一条已核实的事实记录，追溯不到就必须显式承认"未核实"，而不是编一个听起来合理的答案。
 
-AgentOps Lite 帮助开发者看清 AI Agent 在一次运行中到底做了什么：使用了哪些 prompt、调用了哪个模型、执行了哪些工具、耗时多少、成本多少、哪里报错、哪些校验通过，以及一次代码或提示词改动是否造成质量退化。
-
-这个项目面向小团队、个人开发者和开源 AI 项目。目标不是做一个沉重的企业级平台，而是让开发者能在几分钟内给自己的 AI Agent 加上可调试、可追踪、可评测的工程能力。
-
-> 当前状态：pre-alpha。这个仓库正在公开构建中。第一阶段目标是完成一个最小可用的 Python SDK、本地 trace 查看器，以及 GitHub Actions AI 质量门禁。
+> 当前状态：pre-alpha。这个仓库正在公开构建中。第一阶段目标是完成一个最小可用的 Python 核心库（事实账本 + 核验 + 引用强制），以及一个能跑通真实案例的 demo。
 
 ## 为什么需要它
 
-AI Agent 的失败方式和普通软件不一样。
+工具调用型 Agent 最常见、也最难排查的两类失败，不是报错，而是"看起来很正常"：
 
-传统 API 通常会用异常、超时或错误状态码告诉你出问题了。但 AI Agent 可能会更“安静”地失败：
+- **明明拿到了数据，却说没拿到**：工具已经返回了准确的数字，模型生成报告时却写"本轮未取得/无法核实"，或者干脆漏掉了这个数字。
+- **拿不到数据时，编一个像样的答案**：工具没查到结果，模型没有"查不到该怎么说"的明确指令，于是凭训练知识编了一个格式正确、语气自信、但完全没有来源的结论。
 
-- 识别了错误的意图。
-- 调用了错误的工具。
-- 跳过了必须引用的数据来源。
-- 编造了一个数字。
-- 花费了过多 token。
-- 返回了格式正确但推理错误的 JSON。
-- 改了一句 prompt，旧的评测用例悄悄变差。
+这两类问题的共同根因是：现有的 Agent 框架里，"工具返回了什么"和"模型最终写了什么"之间没有强约束——模型可以自由地忽略、篡改或编造。市面上的可观测性工具（记录发生了什么）和 LLM-as-judge 评测工具（生成之后打个主观分）都是在事后检查，没有一个在**生成阶段就前置约束**："这句话里的每个事实点，必须能对应账本里的一条已核实记录"。
 
-AgentOps Lite 要做的事情，就是把这些隐藏步骤变成可见的运行轨迹，并把主观的“回答质量”变成可以重复执行的工程检查。
+GroundGuard 想做的就是这一件事：把"工具结果"和"最终输出"之间的约束，从口头约定变成可执行、可测试的工程机制。
 
-## 它会记录什么
+## 核心机制：一个事实账本 + 一张对账单
 
-- Agent 运行记录和会话信息
-- 意图路由决策
-- Prompt 版本和模型调用
-- 工具调用、参数、输出、耗时和错误
-- Token 用量和预估成本
-- 结构化评测结果
-- 安全、合规和事实校验结果
-- Pull Request 中的质量回归结果
+GroundGuard 的核心是三个互相配合的概念：
+
+| 概念 | 类比 | 作用 |
+| --- | --- | --- |
+| **Claim（需求项）** | 点菜单 | 用户这次提问，实际需要核实哪些事实点 |
+| **Ledger（事实账本）** | 备料台 | 工具调用返回的每一条可核实数据，连同来源、时间戳一起登记 |
+| **Coverage Report（对账单）** | 出菜前的核对单 | 把"需要核实的"和"账本里有的"逐项比对，标出：已核实 / 未核实 / 有矛盾 |
+
+生成阶段只允许引用账本里对上账的条目；账本里没有的数字，输出前会被拦下来，标记为"未核实"而不是静默通过。这不是一个"生成完之后打分"的评测工具，而是一个**贯穿工具调用到最终输出全过程的约束层**。
 
 ## 目标使用体验
 
-### 记录一次 Agent 运行
-
 ```python
-from agentops_lite import trace_agent, trace_tool, record_eval
+from groundguard import Ledger, tool_call, grounded_generate
 
-with trace_agent("research-assistant", input="Summarize this earnings call"):
-    with trace_tool("web_search", query="company earnings call transcript"):
-        results = web_search("company earnings call transcript")
+with Ledger(session_id="req_001") as ledger:
+    with tool_call("get_company_financials", args={"ticker": "AAPL"}) as call:
+        result = fetch_financials("AAPL")
+        call.record_facts(result)  # 结果连同来源、时间戳一起进账本
 
-    answer = agent.run(results)
-
-    record_eval(
-        name="grounded_answer",
-        score=0.91,
-        passed=True,
-        details={"source_required": "passed", "format": "passed"},
+    answer = grounded_generate(
+        prompt="总结一下这家公司最新的财务表现",
+        ledger=ledger,
+        on_unverified="flag",  # 引用不到账本的内容会被标记，而不是静默放行
     )
+
+    report = ledger.coverage_report(answer)
+    # report.verified   -> 有据可查的结论
+    # report.unverified -> 模型写了、但账本里对不上的内容
+    # report.contradicted -> 和账本数据冲突的内容
 ```
-
-### 在 CI 中运行 AI 质量门禁
-
-```yaml
-name: AI Quality Gate
-
-on:
-  pull_request:
-
-jobs:
-  ai-quality-gate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: chasen2041maker/AgentOps-Lite@v1
-        with:
-          evals: evals/*.yaml
-          min-score: 0.85
-```
-
-### 定义评测用例
-
-```yaml
-cases:
-  - name: grounded_research_answer
-    input: "Explain the main risks in this document."
-    must_include:
-      - "sources"
-    forbidden:
-      - "guaranteed"
-      - "risk-free"
-    require_sources: true
-    max_tool_calls: 6
-    min_score: 0.85
-```
-
-## 核心思路
-
-AgentOps Lite 由两个相互连接的部分组成：
-
-1. **观测能力**：看清 Agent 在运行时每一步做了什么。
-2. **质量门禁**：在 prompt、工具或代码变更导致 AI 质量下降时，阻止问题进入主分支。
-
-```mermaid
-flowchart LR
-    A[用户输入] --> B[Agent]
-    B --> C[意图路由]
-    C --> D[工具调用]
-    D --> E[模型调用]
-    E --> F[校验器]
-    F --> G[最终输出]
-
-    B --> T[Trace 存储]
-    D --> T
-    E --> T
-    F --> T
-    T --> H[本地 Dashboard]
-    T --> I[GitHub Action 报告]
-```
-
-## 计划功能
-
-- 用于记录 Agent 运行的 Python SDK
-- 简单的本地 trace 存储
-- 展示运行记录、工具调用和评测分数的 Web dashboard
-- 基于 YAML 的评测用例
-- GitHub Actions 集成
-- 在 PR 中评论失败用例和质量摘要
-- 导出 JSON，方便接入外部看板
-- OpenTelemetry 兼容导出
-- LangChain、LangGraph、OpenAI SDK 和自定义 Agent 示例
-
-## 典型使用场景
-
-- 调试 Agent 为什么调用了错误工具
-- 在合并 PR 前比较不同 prompt 版本的效果
-- 跟踪工具耗时和 token 成本
-- 检查回答是否包含必要引用
-- 捕获幻觉数字或无来源结论
-- 在 CI 中强制执行安全、合规和格式规则
-- 为 AI 产品构建轻量级评测套件
-
-## 路线图
-
-### Milestone 1：Trace SDK
-
-- 开始和结束一次 Agent 运行
-- 记录模型调用
-- 记录工具调用
-- 将 trace 保存为本地 JSONL
-- 导出运行摘要
-
-### Milestone 2：本地 Dashboard
-
-- 浏览最近运行记录
-- 查看分步骤时间线
-- 展示耗时、token 用量和错误
-- 筛选失败或高风险运行
-
-### Milestone 3：AI 质量门禁
-
-- 加载 YAML 评测用例
-- 执行确定性检查
-- 生成适合 CI 使用的 JSON 报告
-- 当分数低于阈值时让 GitHub Actions 失败
-- 在 PR 中添加质量摘要评论
-
-### Milestone 4：框架集成
-
-- LangChain callback adapter
-- LangGraph node tracing
-- OpenAI-compatible model call wrapper
-- FastAPI middleware examples
 
 ## 和其他工具有什么不同
 
-AgentOps Lite 不打算一开始就做成完整的企业级观测平台。
+- **不是又一个可观测性平台**：Langfuse、Arize Phoenix、Helicone、AgentOps 解决的是"看清 Agent 做了什么"，是事后的记录和展示。GroundGuard 解决的是"约束 Agent 能说什么"，作用在生成之前。
+- **不是又一个 LLM-as-judge 评测框架**：promptfoo、DeepEval 这类工具用另一个模型给答案打分，衡量的是主观质量。GroundGuard 做的是确定性的引用核对，不依赖第二个模型的判断。
+- **不是通用幻觉检测研究工具**：学术界的幻觉检测方法（基于内部表征、不确定性量化等）大多是黑盒式的事后打分。GroundGuard 假设你已经知道"事实应该从哪些工具调用里来"，直接在这条已知链路上做强约束，更适合有明确工具调用边界的生产场景（金融、医疗、法律等对数字负责的领域）。
 
-它会优先关注：
+GroundGuard 的目标不是替代这些工具，而是补上它们都没做的那一层：生成之前的强制核对。
 
-- 本地优先的开发体验
-- 用简单文件替代强制云端存储
-- GitHub 原生的质量门禁
-- 小型 AI 项目的快速接入
-- 能解释 Agent 行为的清晰 trace
+## 计划功能
+
+- 核心事实账本：登记、按来源查询、按时间戳失效
+- 引用核对器：从生成文本里抽取声明，比对账本，输出 Coverage Report
+- 框架适配器：LangChain callback、原生 OpenAI/兼容接口 wrapper
+- CI 集成：输出与 promptfoo/DeepEval 断言兼容的 JSON，作为组件而不是替代品
+- 可视化 diff：一次改动前后，Coverage Report 的变化对比
+
+## 路线图
+
+### Milestone 1：核心库
+
+- Ledger 数据结构与记录 API
+- 声明抽取与账本核对（先支持数字/命名实体类声明）
+- Coverage Report 生成
+- 一个可复现的真实失败案例 demo（工具有数据、模型说没有数据 → 接入 GroundGuard 后被拦截修正）
+
+### Milestone 2：框架适配
+
+- LangChain / LangGraph 回调适配
+- 原生 Python 装饰器 / context manager 用法
+- 常见 Agent 框架的接入示例
+
+### Milestone 3：CI 集成
+
+- 输出 JSON 报告，兼容主流评测工具的断言格式
+- GitHub Action：PR 中标注"这次改动是否引入了新的未核实声明"
+
+### Milestone 4：可视化
+
+- 本地轻量 dashboard：查看账本、声明、核对结果的时间线
+- 一次 prompt/工具改动前后的 Coverage Report 对比
+
+## 典型使用场景
+
+- 金融/医疗/法律等场景下，防止模型编造具体数字或结论
+- 排查"工具明明返回了正确数据，报告却说没查到"这类隐藏 bug
+- 在 CI 中拦截"这次改动让更多声明失去了事实依据"的回归
+- 给已有的工具调用型 Agent 加一层可测试的事实边界，而不用重写整个框架
 
 ## 仓库结构
 
 计划中的结构：
 
 ```text
-agentops-lite/
-  packages/
-    python-sdk/
-  action/
-  dashboard/
-  examples/
-  evals/
-  docs/
+groundguard/
+  core/          Ledger、Claim、Coverage Report 核心实现
+  adapters/      LangChain / OpenAI 等框架适配器
+  cli/           命令行工具与 CI 集成
+  examples/      可复现的失败案例与接入示例
+  docs/          设计文档
 ```
 
 ## 参与贡献
 
 项目还处于非常早期阶段。欢迎以下类型的贡献：
 
-- 真实 AI Agent 失败案例
-- 评测用例示例
-- SDK API 设计反馈
-- Dashboard 交互建议
-- GitHub Actions 工作流建议
-- 与主流 Agent 框架的集成方案
+- 真实的"模型说没数据/编造数字"失败案例（脱敏后的输入输出即可，不需要还原具体业务）
+- 声明抽取/核对算法的改进思路
+- 框架适配器实现
+- API 设计反馈
 
 如果是较大的改动，请先开 issue，描述一个具体的小提案。
 
 ## 安全说明
 
-Agent trace 可能包含 prompt、用户输入、API 响应、工具输出和其他敏感数据。AgentOps Lite 的默认设计目标是本地优先存储，并在共享或上传 trace 前显式脱敏。
-
-计划中的安全能力：
-
-- Secret 自动脱敏
-- 可配置字段遮罩
-- 默认本地模式
-- 不做静默远程上传
-- CI 报告支持输出截断
+Ledger 中可能包含 prompt、工具输出等敏感数据。GroundGuard 默认本地优先存储，不做静默远程上传，共享或导出前需要显式脱敏。
 
 ## License
 
