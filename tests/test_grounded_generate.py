@@ -220,6 +220,32 @@ def test_grounded_generate_strips_english_unverified_sentence_cleanly():
     assert result.report.passed is True
 
 
+def test_strip_unverified_claims_uses_span_offsets_for_repeated_text():
+    from groundguard import CoverageReport, OutputClaim
+    from groundguard.generate.grounded_generate import _strip_unverified_claims
+
+    answer = "Cash was $120 million. Cash was $120 million."
+    second_start = answer.rfind("$120 million")
+    second_end = second_start + len("$120 million")
+    report = CoverageReport(
+        session_id="req_001",
+        output_claims=[
+            OutputClaim(
+                id="claim_1",
+                text_span="Cash was $120 million",
+                claim_type="numeric",
+                normalized_value=Decimal("120000000"),
+                unit="USD",
+                status="unverified",
+                start=second_start,
+                end=second_end,
+            )
+        ],
+    )
+
+    assert _strip_unverified_claims(answer, report) == "Cash was $120 million."
+
+
 def test_grounded_decorator_returns_report_for_framework_free_functions():
     from groundguard import Fact, GroundedResult, Ledger, Policy, grounded
 

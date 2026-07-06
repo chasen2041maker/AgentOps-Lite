@@ -102,6 +102,8 @@ def test_report_to_assertion_dict_exposes_promptfoo_and_deepeval_fields():
                 unit="USD",
                 status="contradicted",
                 diff="ledger=383000000; output=3830000000",
+                start=12,
+                end=25,
             )
         ],
         verified_count=1,
@@ -124,6 +126,8 @@ def test_report_to_assertion_dict_exposes_promptfoo_and_deepeval_fields():
     assert payload["claims"][0]["text_span"] == "Revenue was $3.83 billion"
     assert payload["claims"][0]["status"] == "contradicted"
     assert payload["claims"][0]["diff"] == "ledger=383000000; output=3830000000"
+    assert payload["claims"][0]["start"] == 12
+    assert payload["claims"][0]["end"] == 25
 
 
 def test_cli_report_can_emit_assertion_schema(capsys):

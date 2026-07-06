@@ -114,8 +114,17 @@ def _build_grounded_prompt(prompt: str, required_fact_keys: list[str]) -> str:
 
 def _strip_unverified_claims(answer: str, report: CoverageReport) -> str:
     stripped = answer
-    for claim in report.output_claims:
-        if claim.status == "unverified":
+    unverified_claims = [
+        claim for claim in report.output_claims if claim.status == "unverified"
+    ]
+    claims_with_offsets = [
+        claim for claim in unverified_claims if claim.start is not None and claim.end is not None
+    ]
+    if len(claims_with_offsets) == len(unverified_claims):
+        for claim in sorted(claims_with_offsets, key=lambda item: item.start or 0, reverse=True):
+            stripped = _strip_claim_range(stripped, claim.start or 0, claim.end or 0)
+    else:
+        for claim in unverified_claims:
             stripped = _strip_claim_span(stripped, claim.text_span)
     return _cleanup_stripped_text(stripped)
 
@@ -126,6 +135,12 @@ def _strip_claim_span(answer: str, text_span: str) -> str:
         return answer
     remove_start = _claim_clause_start(answer, span_start)
     remove_end = _claim_clause_end(answer, span_start + len(text_span))
+    return f"{answer[:remove_start]}{answer[remove_end:]}"
+
+
+def _strip_claim_range(answer: str, start: int, end: int) -> str:
+    remove_start = _claim_clause_start(answer, start)
+    remove_end = _claim_clause_end(answer, end)
     return f"{answer[:remove_start]}{answer[remove_end:]}"
 
 

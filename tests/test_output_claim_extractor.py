@@ -14,6 +14,9 @@ def test_extracts_explicit_fact_key_numeric_claim():
     assert claim.unit == "CNY"
     assert claim.fact_key == "net_profit_2025"
     assert claim.status == "unverified"
+    assert claims[0].start == 5
+    assert claims[0].end == 36
+    assert "净利润为 823.2 亿元 [fact:net_profit_2025]。"[claim.start : claim.end] == "823.2 亿元 [fact:net_profit_2025]"
     assert claim.id.startswith("claim_")
 
 

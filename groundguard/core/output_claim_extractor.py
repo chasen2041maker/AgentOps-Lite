@@ -40,6 +40,7 @@ def extract_output_claims(text: str) -> list[OutputClaim]:
             unit=unit_text,
             currency_prefix=currency_prefix,
         )
+        start, end = _claim_match_span(text, match)
         claims.append(
             OutputClaim(
                 id=f"claim_{uuid4().hex}",
@@ -48,6 +49,8 @@ def extract_output_claims(text: str) -> list[OutputClaim]:
                 normalized_value=value,
                 unit=unit,
                 fact_key=match.group("fact_key"),
+                start=start,
+                end=end,
             )
         )
     return claims
@@ -74,6 +77,16 @@ def _claim_text_span(text: str, match: re.Match[str]) -> str:
     while start > 0 and text[start - 1].isascii() and text[start - 1].isalnum():
         start -= 1
     return text[start : match.end()].strip("，。,. ")
+
+
+def _claim_match_span(text: str, match: re.Match[str]) -> tuple[int, int]:
+    start = match.start()
+    end = match.end()
+    while start < end and text[start].isspace():
+        start += 1
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return start, end
 
 
 def _inside_fact_marker(text: str, index: int) -> bool:

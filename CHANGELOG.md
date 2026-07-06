@@ -2,6 +2,29 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.1.4 - 2026-07-06
+
+### Added
+
+- `OutputClaim.start` and `OutputClaim.end` offsets for precise downstream
+  highlighting and text operations.
+- `REFACTOR.md` roadmap, reviewed against the current codebase and committed as
+  the living refactor plan.
+
+### Changed
+
+- Unverified-claim stripping now prefers span offsets and falls back to
+  `text_span` search only when offsets are unavailable.
+- Assertion JSON claim objects now expose `start` and `end` offsets.
+- Installation and GitHub Action examples now point to `v0.1.4`.
+
+### Verified
+
+```text
+python -m pytest
+59 passed
+```
+
 ## v0.1.3 - 2026-07-06
 
 ### Added

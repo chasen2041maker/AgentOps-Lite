@@ -59,6 +59,8 @@ class OutputClaim:
     matched_fact_id: str | None = None
     status: ClaimStatus = "unverified"
     diff: str | None = None
+    start: int | None = None
+    end: int | None = None
 
 
 @dataclass

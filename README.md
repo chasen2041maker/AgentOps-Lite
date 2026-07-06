@@ -109,7 +109,7 @@ GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
 tagged release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.3"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.4"
 ```
 
 For local development:
@@ -253,8 +253,9 @@ groundguard-report \
 ```
 
 The assertion schema includes `pass`, `success`, `score`, `reason`,
-`namedScores`, a top-level `claims` list for per-claim UI highlighting, and the
-full GroundGuard report under `metadata.groundguard`.
+`namedScores`, a top-level `claims` list with `text_span`, `start`, `end`,
+`status`, and `diff` for per-claim UI highlighting, and the full GroundGuard
+report under `metadata.groundguard`.
 
 ## GitHub Action
 
@@ -262,7 +263,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.1.3
+  uses: chasen2041maker/GroundGuard@v0.1.4
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
