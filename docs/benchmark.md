@@ -1,24 +1,27 @@
 # Benchmark
 
 GroundGuard includes a small deterministic benchmark. It is designed to be
-reproducible, not broad.
+reproducible, not a leaderboard.
 
 ```bash
 groundguard-benchmark
 ```
 
-The benchmark checks four cases:
+The benchmark checks 25 cases:
 
-- fully verified answer,
-- omitted required fact,
-- contradicted tagged fact,
-- invented unregistered number under a blocking unverified policy.
+- fully verified answers,
+- omitted required facts,
+- contradicted tagged facts,
+- candidate matches,
+- ambiguous matches,
+- bare-number extraction limits,
+- invented unregistered numbers under a blocking unverified policy.
 
 Current expected result:
 
 ```text
-cases_total: 4
-expected_failures: 3
-detected_failures: 3
+cases_total: 25
+expected_failures: 14
+detected_failures: 14
 false_positives: 0
 ```

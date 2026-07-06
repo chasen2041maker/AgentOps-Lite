@@ -2,6 +2,24 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Expanded `groundguard-benchmark` from 4 smoke cases to 25 deterministic cases
+  covering verified claims, omissions, contradictions, candidate matches,
+  ambiguous matches, bare-number extraction limits, and invented numbers.
+- `examples/openai_demo/run.py` now shows a blocked answer followed by a
+  fact-key-corrected answer, with live OpenAI SDK support still optional.
+- Added `groundguard/py.typed` and Python 3.13 CI coverage.
+
+### Changed
+
+- Updated launch and project-plan docs from old `v0.1.1` cold-start language to
+  current `v0.2.x` language.
+- Documented the exact PyPI Trusted Publisher values needed to publish from
+  GitHub Actions.
+
 ## v0.2.2 - 2026-07-06
 
 ### Fixed

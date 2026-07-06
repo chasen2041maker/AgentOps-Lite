@@ -286,14 +286,15 @@ cited the facts your tools already returned.
 groundguard-benchmark
 ```
 
-The bundled deterministic smoke benchmark currently checks 4 cases:
-fully verified, omitted required fact, contradicted tagged fact, and invented
-unregistered number under a blocking policy. Expected signal:
+The bundled deterministic benchmark currently checks 25 cases across verified
+answers, omitted required facts, contradicted tagged facts, candidate matches,
+ambiguous matches, bare-number extraction limits, and invented unregistered
+numbers under a blocking policy. Expected signal:
 
 ```text
-cases_total: 4
-expected_failures: 3
-detected_failures: 3
+cases_total: 25
+expected_failures: 14
+detected_failures: 14
 false_positives: 0
 ```
 
@@ -422,6 +423,9 @@ python examples/openai_demo/run.py
 python examples/promptfoo_groundguard/run.py
 python examples/deepeval_groundguard/run.py
 ```
+
+`examples/openai_demo/run.py` records tool facts, shows an answer blocked for
+omitting those required facts, then shows the corrected fact-key answer passing.
 
 For a live OpenAI SDK call:
 

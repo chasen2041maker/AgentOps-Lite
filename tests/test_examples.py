@@ -19,12 +19,17 @@ def test_langgraph_node_demo_shows_gate_states():
 
 
 def test_openai_demo_offline_mode_runs_without_api_key(monkeypatch):
-    from examples.openai_demo.run import run_demo
+    from examples.openai_demo.run import run_agent_demo, run_demo
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
+    gate_result = run_agent_demo(use_live_openai=False)
     result = run_demo(use_live_openai=False)
 
+    assert gate_result.before.report.passed is False
+    assert gate_result.before.report.omitted_required_count == 2
+    assert gate_result.after.report.passed is True
+    assert gate_result.after.report.verified_count == 2
     assert result.report.passed is True
     assert result.report.verified_count == 2
 

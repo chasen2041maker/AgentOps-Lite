@@ -59,13 +59,14 @@ GroundGuard is intentionally small. It is not a tracing dashboard and not an
 LLM-as-judge. It adds one narrow gate before release: did the generated answer
 actually match the facts your tools provided?
 
-The current v0.1.1 release includes:
+The current v0.2.x release includes:
 - in-memory Ledger + JSONL persistence
 - explicit tool_call(...).record_facts(...)
-- deterministic numeric claim extraction
+- deterministic numeric claim extraction with Chinese and English units
 - omitted-required-fact detection
 - CLI JSON reports and assertion-style output for eval tools
 - OpenAI/LangChain/LangGraph-style examples
+- scoped extractor registration, fix/reask strategies, and extraction coverage
 - a reusable GitHub Action
 
 The core demo is the failure mode:
@@ -80,7 +81,7 @@ Repo: https://github.com/chasen2041maker/GroundGuard
 
 - If people ask how this differs from Langfuse, Phoenix, promptfoo, or DeepEval,
   sharpen the README comparison table.
-- If people ask whether it supports non-numeric claims, point them to the v0.1.1
+- If people ask whether it supports non-numeric claims, point them to the v0.2.x
   limit: numeric claims with units or magnitude markers only.
 - If people ask for automatic fact extraction from arbitrary JSON, keep the v1
   boundary: explicit mapping first, optional extraction later.
