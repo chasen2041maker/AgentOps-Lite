@@ -5,6 +5,11 @@ from decimal import Decimal
 from uuid import uuid4
 
 from groundguard.core.models import OutputClaim
+from groundguard.core.units import (
+    magnitude_multiplier,
+    normalized_currency_prefix,
+    normalized_unit,
+)
 
 
 _NUMERIC_CLAIM_RE = re.compile(
@@ -55,51 +60,8 @@ def _normalize_numeric_value(
     currency_prefix: str | None = None,
 ) -> tuple[Decimal, str | None]:
     value = Decimal(number_text.replace(",", ""))
-    value *= _magnitude_multiplier(magnitude)
-    return value, _normalized_unit(unit) or _normalized_currency_prefix(currency_prefix)
-
-
-def _magnitude_multiplier(magnitude: str | None) -> Decimal:
-    if magnitude is None:
-        return Decimal("1")
-    normalized = magnitude.lower()
-    if magnitude == "亿":
-        return Decimal("100000000")
-    if magnitude == "万":
-        return Decimal("10000")
-    if magnitude == "千":
-        return Decimal("1000")
-    if normalized in {"billion", "bn", "b"}:
-        return Decimal("1000000000")
-    if normalized in {"million", "mn", "m"}:
-        return Decimal("1000000")
-    if normalized in {"thousand", "k"}:
-        return Decimal("1000")
-    return Decimal("1")
-
-
-def _normalized_unit(unit: str | None) -> str | None:
-    if unit is None:
-        return None
-    normalized = unit.lower()
-    if unit in {"元"}:
-        return "CNY"
-    if unit == "美元":
-        return "USD"
-    if normalized in {"usd", "dollar", "dollars", "us dollar", "us dollars"}:
-        return "USD"
-    if normalized in {"percent", "percentage point", "percentage points"}:
-        return "%"
-    return unit
-
-
-def _normalized_currency_prefix(currency_prefix: str | None) -> str | None:
-    if currency_prefix is None:
-        return None
-    normalized = currency_prefix.lower()
-    if normalized in {"$", "us$", "usd"}:
-        return "USD"
-    return currency_prefix
+    value *= magnitude_multiplier(magnitude)
+    return value, normalized_unit(unit) or normalized_currency_prefix(currency_prefix)
 
 
 def _claim_text_span(text: str, match: re.Match[str]) -> str:

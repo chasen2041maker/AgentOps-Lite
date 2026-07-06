@@ -2,17 +2,26 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
-## Unreleased
+## v0.1.3 - 2026-07-06
 
 ### Added
 
 - README hero demo GIF plus a reproducible PowerShell renderer for regenerating
   it locally with ffmpeg.
+- Shared numeric unit normalization for registered facts and matched claims,
+  including CNY magnitude units such as `亿元` and `万元`.
+- `ambiguous` claim status when multiple unkeyed facts match within tolerance.
+- Top-level per-claim details in assertion JSON for downstream highlighting.
 
 ### Changed
 
 - Financial report demo output now colorizes failed and passing gate states for
   recordings and terminal demos.
+- English extraction coverage now includes compact magnitudes and percentages
+  such as `1.2M`, `3,830 million dollars`, and `21.5 percent`.
+- `on_unverified="strip"` now fails reports until unverified claims are actually
+  removed, keeping policy behavior in one place.
+- Installation and GitHub Action examples now point to `v0.1.3`.
 
 ## v0.1.2 - 2026-07-06
 

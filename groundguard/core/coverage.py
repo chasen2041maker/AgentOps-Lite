@@ -29,6 +29,7 @@ def build_coverage_report(
         candidate_match_count=_count_status(output_claims, "candidate_match"),
         unverified_count=_count_status(output_claims, "unverified"),
         contradicted_count=_count_status(output_claims, "contradicted"),
+        ambiguous_count=_count_status(output_claims, "ambiguous"),
         omitted_required_count=len(omitted_required_facts),
     )
 

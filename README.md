@@ -90,9 +90,10 @@ omitted_required: 0
 - In-memory `Ledger` with TTL filtering and JSONL persistence.
 - Explicit `tool_call(...).record_facts(...)` registration.
 - Deterministic numeric claim extraction with `[fact:key]` markers, Chinese
-  amounts, percentages, and common English USD formats.
+  amounts, percentages, compact English magnitudes, and common English USD
+  formats.
 - Matching statuses: `verified`, `candidate_match`, `unverified`,
-  `contradicted`.
+  `contradicted`, and `ambiguous`.
 - Required fact coverage checks for "tool had data, model omitted it" failures.
 - `CoverageReport` and configurable `Policy` evaluation.
 - `grounded_generate()` with report return, blocking, and conservative stripping.
@@ -108,7 +109,7 @@ GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
 tagged release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.2"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.3"
 ```
 
 For local development:
@@ -202,8 +203,13 @@ second LLM, and no token-level generation control claims.
 
 Current claim extraction is intentionally narrow: it extracts numeric claims
 that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
-`10.25 亿美元`, `$3.83 billion`, `USD 10.25M`, or `2.5 million dollars`.
-Bare numbers without units are ignored to avoid false positives.
+`10.25 亿美元`, `$3.83 billion`, `USD 10.25M`, `1.2M`,
+`3,830 million dollars`, or `21.5 percent`. Bare numbers without units are
+ignored to avoid false positives.
+
+Registered numeric facts are normalized before matching. For example,
+`(Decimal("823.2"), "亿元")`, `(Decimal("8232000"), "万元")`, and
+`(Decimal("82320000000"), "CNY")` all compare as the same CNY value.
 
 ## Where It Fits
 
@@ -247,7 +253,8 @@ groundguard-report \
 ```
 
 The assertion schema includes `pass`, `success`, `score`, `reason`,
-`namedScores`, and the full GroundGuard report under `metadata.groundguard`.
+`namedScores`, a top-level `claims` list for per-claim UI highlighting, and the
+full GroundGuard report under `metadata.groundguard`.
 
 ## GitHub Action
 
@@ -255,7 +262,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.1.2
+  uses: chasen2041maker/GroundGuard@v0.1.3
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

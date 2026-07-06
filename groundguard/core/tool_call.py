@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from groundguard.core.ledger import Ledger
 from groundguard.core.models import Fact, FactValueKind
+from groundguard.core.units import normalize_numeric_fact
 
 
 Clock = Callable[[], float]
@@ -79,6 +80,8 @@ def tool_call(
 def _normalize_fact_input(value: FactInput) -> tuple[Decimal | str, str | None]:
     if isinstance(value, tuple):
         fact_value, unit = value
+        if isinstance(fact_value, Decimal):
+            return normalize_numeric_fact(fact_value, unit)
         return fact_value, unit
     return value, None
 

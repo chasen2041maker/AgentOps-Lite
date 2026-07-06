@@ -86,6 +86,21 @@ def test_extracts_usd_claim_with_dollar_suffix():
     assert claims[0].fact_key is None
 
 
+def test_extracts_common_english_magnitude_and_percent_claims():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims(
+        "Usage reached 1.2M, revenue was 3,830 million dollars, and margin was 21.5 percent."
+    )
+
+    assert [claim.normalized_value for claim in claims] == [
+        Decimal("1200000"),
+        Decimal("3830000000"),
+        Decimal("21.5"),
+    ]
+    assert [claim.unit for claim in claims] == [None, "USD", "%"]
+
+
 def test_extracts_multiple_numeric_claims_in_order():
     from groundguard import extract_output_claims
 

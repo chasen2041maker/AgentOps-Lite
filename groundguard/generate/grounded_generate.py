@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
@@ -125,29 +124,43 @@ def _strip_claim_span(answer: str, text_span: str) -> str:
     span_start = answer.find(text_span)
     if span_start == -1:
         return answer
-    number_match = re.search(r"\d", text_span)
-    if number_match is None:
-        return answer.replace(text_span, "", 1)
-    number_index = span_start + number_match.start()
-    remove_start = _claim_clause_start(answer, number_index)
-    remove_end = span_start + len(text_span)
+    remove_start = _claim_clause_start(answer, span_start)
+    remove_end = _claim_clause_end(answer, span_start + len(text_span))
     return f"{answer[:remove_start]}{answer[remove_end:]}"
 
 
-def _claim_clause_start(answer: str, number_index: int) -> int:
+def _claim_clause_start(answer: str, span_start: int) -> int:
     delimiters = "，。,.；;\n"
-    delimiter_index = max(answer.rfind(delimiter, 0, number_index) for delimiter in delimiters)
+    delimiter_index = max(answer.rfind(delimiter, 0, span_start) for delimiter in delimiters)
     if delimiter_index == -1:
-        return max(0, number_index - 8)
+        return 0
     return delimiter_index + 1
+
+
+def _claim_clause_end(answer: str, span_end: int) -> int:
+    delimiters = "，。,.；;\n"
+    following = [
+        index for delimiter in delimiters if (index := answer.find(delimiter, span_end)) != -1
+    ]
+    if not following:
+        return span_end
+    remove_end = min(following) + 1
+    while remove_end < len(answer) and answer[remove_end].isspace():
+        remove_end += 1
+    return remove_end
 
 
 def _cleanup_stripped_text(text: str) -> str:
     while "，，" in text:
         text = text.replace("，，", "，")
+    while ".." in text:
+        text = text.replace("..", ".")
     while "  " in text:
         text = text.replace("  ", " ")
-    return text.replace("，。", "。").strip(" ，")
+    text = text.replace("，。", "。").strip()
+    while text and text[0] in "，,.；;":
+        text = text[1:].lstrip()
+    return text.rstrip(" ，")
 
 
 def _should_block(report: CoverageReport) -> bool:

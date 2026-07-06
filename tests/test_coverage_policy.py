@@ -38,6 +38,7 @@ def test_build_coverage_report_counts_claim_statuses_and_omissions():
             _claim("verified", fact_key="net_profit_2025"),
             _claim("unverified"),
             _claim("contradicted", fact_key="revenue_2025"),
+            _claim("ambiguous"),
         ],
         required_facts=[
             RequiredFact("net_profit_2025"),
@@ -48,6 +49,7 @@ def test_build_coverage_report_counts_claim_statuses_and_omissions():
     assert report.verified_count == 1
     assert report.unverified_count == 1
     assert report.contradicted_count == 1
+    assert report.ambiguous_count == 1
     assert report.candidate_match_count == 0
     assert report.omitted_required_count == 1
     assert [fact.key for fact in report.omitted_required_facts] == ["cash_flow_2025"]
@@ -124,3 +126,33 @@ def test_policy_blocks_when_unverified_ratio_exceeds_threshold():
 
     assert evaluated.passed is False
     assert "unverified_ratio=0.500" in evaluated.policy_reason
+
+
+def test_policy_blocks_ambiguous_claims_by_default():
+    from groundguard import Policy, build_coverage_report, evaluate_policy
+
+    report = build_coverage_report(
+        session_id="req_001",
+        output_claims=[_claim("ambiguous")],
+        required_facts=[],
+    )
+
+    evaluated = evaluate_policy(report, Policy())
+
+    assert evaluated.passed is False
+    assert "ambiguous_count=1" in evaluated.policy_reason
+
+
+def test_policy_treats_strip_as_failed_until_unverified_claims_are_removed():
+    from groundguard import Policy, build_coverage_report, evaluate_policy
+
+    report = build_coverage_report(
+        session_id="req_001",
+        output_claims=[_claim("unverified")],
+        required_facts=[],
+    )
+
+    evaluated = evaluate_policy(report, Policy(on_unverified="strip"))
+
+    assert evaluated.passed is False
+    assert "unverified_ratio=1.000" in evaluated.policy_reason

@@ -61,8 +61,10 @@ def report_to_assertion_dict(report: CoverageReport) -> dict[str, Any]:
             "groundguard.candidate_match_count": report.candidate_match_count,
             "groundguard.unverified_count": report.unverified_count,
             "groundguard.contradicted_count": report.contradicted_count,
+            "groundguard.ambiguous_count": report.ambiguous_count,
             "groundguard.omitted_required_count": report.omitted_required_count,
         },
+        "claims": _json_safe([asdict(claim) for claim in report.output_claims]),
         "metadata": {
             "groundguard": report_to_dict(report),
         },
@@ -119,6 +121,7 @@ def _coverage_score(report: CoverageReport) -> float:
         + report.candidate_match_count
         + report.unverified_count
         + report.contradicted_count
+        + report.ambiguous_count
     )
     if total_claims == 0:
         return 1.0 if report.passed else 0.0

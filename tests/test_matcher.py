@@ -67,6 +67,18 @@ def test_explicit_fact_key_unit_mismatch_marks_claim_contradicted():
     assert "unit" in claim.diff
 
 
+def test_explicit_fact_key_normalizes_fact_currency_magnitude_units():
+    from groundguard import match_claims
+
+    [claim] = match_claims(
+        [_claim(Decimal("82320000000"), unit="CNY", fact_key="net_profit_2025")],
+        [_fact("net_profit_2025", Decimal("823.2"), unit="亿元")],
+    )
+
+    assert claim.status == "verified"
+    assert claim.matched_fact_id == "fact_net_profit_2025"
+
+
 def test_unkeyed_nearby_numeric_match_is_only_candidate_match():
     from groundguard import match_claims
 
@@ -77,6 +89,24 @@ def test_unkeyed_nearby_numeric_match_is_only_candidate_match():
 
     assert claim.status == "candidate_match"
     assert claim.matched_fact_id == "fact_net_profit_2025"
+
+
+def test_unkeyed_numeric_match_marks_ambiguous_when_multiple_facts_are_nearby():
+    from groundguard import match_claims
+
+    [claim] = match_claims(
+        [_claim(Decimal("100"))],
+        [
+            _fact("revenue_2025", Decimal("100.1")),
+            _fact("net_profit_2025", Decimal("99.9")),
+        ],
+        tolerance=0.005,
+    )
+
+    assert claim.status == "ambiguous"
+    assert claim.matched_fact_id is None
+    assert "fact_revenue_2025" in claim.diff
+    assert "fact_net_profit_2025" in claim.diff
 
 
 def test_unkeyed_numeric_without_candidate_stays_unverified():

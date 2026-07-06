@@ -186,6 +186,40 @@ def test_grounded_generate_strips_unverified_claims_when_policy_requests_strip()
     assert result.report.passed is True
 
 
+def test_grounded_generate_strips_english_unverified_sentence_cleanly():
+    from groundguard import Fact, GroundedResult, Ledger, Policy, grounded_generate
+
+    ledger = Ledger(session_id="req_001", clock=lambda: 100.0)
+    ledger.register_fact(
+        Fact(
+            id="fact_net_profit_2025",
+            source_tool="tool",
+            source_call_id="call_1",
+            key="net_profit_2025",
+            value=Decimal("823200000"),
+            unit="USD",
+        )
+    )
+
+    result = grounded_generate(
+        prompt="Summarize performance",
+        llm_call=lambda prompt: (
+            "Cash reserves were $120 million. "
+            "Net profit was $823.2 million [fact:net_profit_2025]."
+        ),
+        ledger=ledger,
+        required_fact_keys=["net_profit_2025"],
+        policy=Policy(on_unverified="strip"),
+        return_report=True,
+    )
+
+    assert isinstance(result, GroundedResult)
+    assert "$120 million" not in result.answer
+    assert result.answer == "Net profit was $823.2 million [fact:net_profit_2025]."
+    assert result.report.unverified_count == 0
+    assert result.report.passed is True
+
+
 def test_grounded_decorator_returns_report_for_framework_free_functions():
     from groundguard import Fact, GroundedResult, Ledger, Policy, grounded
 

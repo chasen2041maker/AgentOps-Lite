@@ -7,7 +7,13 @@ from typing import Any, Literal
 
 FactValueKind = Literal["numeric", "entity", "text"]
 ClaimType = Literal["numeric", "entity", "comparison", "assertion"]
-ClaimStatus = Literal["verified", "candidate_match", "unverified", "contradicted"]
+ClaimStatus = Literal[
+    "verified",
+    "candidate_match",
+    "unverified",
+    "contradicted",
+    "ambiguous",
+]
 RequiredFactSeverity = Literal["required", "optional"]
 
 
@@ -67,6 +73,7 @@ class CoverageReport:
     candidate_match_count: int = 0
     unverified_count: int = 0
     contradicted_count: int = 0
+    ambiguous_count: int = 0
     omitted_required_count: int = 0
     passed: bool = True
     policy_reason: str = ""

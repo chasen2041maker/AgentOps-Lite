@@ -10,6 +10,7 @@ from groundguard.core.models import CoverageReport
 class Policy:
     max_unverified_ratio: float = 0.1
     max_contradicted: int = 0
+    max_ambiguous: int = 0
     max_omitted_required: int = 0
     allow_candidate_matches: bool = False
     on_unverified: Literal["flag", "strip", "block"] = "flag"
@@ -27,6 +28,11 @@ def evaluate_policy(report: CoverageReport, policy: Policy) -> CoverageReport:
             f"contradicted_count={report.contradicted_count} "
             f"> max_contradicted={policy.max_contradicted}"
         )
+    if report.ambiguous_count > policy.max_ambiguous:
+        reasons.append(
+            f"ambiguous_count={report.ambiguous_count} "
+            f"> max_ambiguous={policy.max_ambiguous}"
+        )
     if (
         policy.on_omitted_required == "block"
         and report.omitted_required_count > policy.max_omitted_required
@@ -37,6 +43,11 @@ def evaluate_policy(report: CoverageReport, policy: Policy) -> CoverageReport:
         )
     unverified_ratio = _unverified_ratio(report)
     if policy.on_unverified == "block" and unverified_ratio > policy.max_unverified_ratio:
+        reasons.append(
+            f"unverified_ratio={unverified_ratio:.3f} "
+            f"> max_unverified_ratio={policy.max_unverified_ratio:.3f}"
+        )
+    if policy.on_unverified == "strip" and unverified_ratio > policy.max_unverified_ratio:
         reasons.append(
             f"unverified_ratio={unverified_ratio:.3f} "
             f"> max_unverified_ratio={policy.max_unverified_ratio:.3f}"

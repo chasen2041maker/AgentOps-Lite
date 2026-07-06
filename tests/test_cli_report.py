@@ -88,11 +88,22 @@ def test_cli_report_can_fail_on_policy(capsys):
 
 
 def test_report_to_assertion_dict_exposes_promptfoo_and_deepeval_fields():
-    from groundguard import CoverageReport
+    from groundguard import CoverageReport, OutputClaim
     from groundguard.cli.report import report_to_assertion_dict
 
     report = CoverageReport(
         session_id="req_001",
+        output_claims=[
+            OutputClaim(
+                id="claim_1",
+                text_span="Revenue was $3.83 billion",
+                claim_type="numeric",
+                normalized_value=Decimal("3830000000"),
+                unit="USD",
+                status="contradicted",
+                diff="ledger=383000000; output=3830000000",
+            )
+        ],
         verified_count=1,
         unverified_count=1,
         omitted_required_count=1,
@@ -110,6 +121,9 @@ def test_report_to_assertion_dict_exposes_promptfoo_and_deepeval_fields():
     assert payload["assertion"]["type"] == "groundguard.fact_coverage"
     assert payload["namedScores"]["groundguard.verified_count"] == 1
     assert payload["metadata"]["groundguard"]["omitted_required_count"] == 1
+    assert payload["claims"][0]["text_span"] == "Revenue was $3.83 billion"
+    assert payload["claims"][0]["status"] == "contradicted"
+    assert payload["claims"][0]["diff"] == "ledger=383000000; output=3830000000"
 
 
 def test_cli_report_can_emit_assertion_schema(capsys):

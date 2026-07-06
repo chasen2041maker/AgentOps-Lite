@@ -67,3 +67,24 @@ def test_record_facts_accepts_value_without_unit():
     assert fact.value_kind == "text"
     assert fact.unit is None
     assert fact.source_call_id == call.id
+
+
+def test_record_facts_normalizes_currency_magnitude_units():
+    from groundguard import Ledger, tool_call
+
+    ledger = Ledger(session_id="req_001", clock=lambda: 100.0)
+
+    with tool_call("lookup", args={}, ledger=ledger, clock=lambda: 1.0) as call:
+        call.record_facts(
+            {
+                "net_profit_2025": (Decimal("823.2"), "亿元"),
+                "revenue_2025": (Decimal("38300000"), "万元"),
+            }
+        )
+
+    facts = ledger.all_facts()
+    assert [(fact.key, fact.value, fact.unit) for fact in facts] == [
+        ("net_profit_2025", Decimal("82320000000"), "CNY"),
+        ("revenue_2025", Decimal("383000000000"), "CNY"),
+    ]
+    assert all(fact.source_call_id == call.id for fact in facts)

@@ -4,6 +4,7 @@ from dataclasses import replace
 from decimal import Decimal
 
 from groundguard.core.models import Fact, OutputClaim
+from groundguard.core.units import normalize_numeric_fact
 
 
 def match_claims(
@@ -30,20 +31,22 @@ def _match_explicit_key(
     fact = next((candidate for candidate in facts if candidate.key == claim.fact_key), None)
     if fact is None:
         return claim
-    if fact.unit != claim.unit:
+    normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
+    normalized_fact_value, normalized_fact_unit = _normalize_fact_value(fact)
+    if normalized_fact_unit != normalized_claim_unit:
         return replace(
             claim,
             status="contradicted",
             matched_fact_id=fact.id,
-            diff=f"unit ledger={fact.unit}; output={claim.unit}",
+            diff=f"unit ledger={normalized_fact_unit}; output={normalized_claim_unit}",
         )
-    if _values_match(claim.normalized_value, fact.value, tolerance):
+    if _values_match(normalized_claim_value, normalized_fact_value, tolerance):
         return replace(claim, status="verified", matched_fact_id=fact.id, diff=None)
     return replace(
         claim,
         status="contradicted",
         matched_fact_id=fact.id,
-        diff=f"ledger={fact.value}; output={claim.normalized_value}",
+        diff=f"ledger={normalized_fact_value}; output={normalized_claim_value}",
     )
 
 
@@ -52,15 +55,31 @@ def _match_numeric_candidate(
     facts: list[Fact],
     tolerance: float,
 ) -> OutputClaim:
-    candidates = [
-        fact
-        for fact in facts
-        if fact.unit == claim.unit and isinstance(fact.value, Decimal)
-    ]
-    nearest = _nearest_fact(claim.normalized_value, candidates)
-    if nearest is None:
+    normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
+    if not isinstance(normalized_claim_value, Decimal):
         return claim
-    if _values_match(claim.normalized_value, nearest.value, tolerance):
+    candidates = [
+        (fact, normalized_value)
+        for fact in facts
+        for normalized_value, normalized_unit in [_normalize_fact_value(fact)]
+        if normalized_unit == normalized_claim_unit
+        and isinstance(normalized_value, Decimal)
+    ]
+    nearby = [
+        (fact, value)
+        for fact, value in candidates
+        if _values_match(normalized_claim_value, value, tolerance)
+    ]
+    if len(nearby) > 1:
+        candidate_ids = ",".join(fact.id for fact, _ in nearby)
+        return replace(
+            claim,
+            status="ambiguous",
+            matched_fact_id=None,
+            diff=f"ambiguous_candidates={candidate_ids}",
+        )
+    if len(nearby) == 1:
+        nearest = nearby[0][0]
         return replace(
             claim,
             status="candidate_match",
@@ -70,10 +89,16 @@ def _match_numeric_candidate(
     return claim
 
 
-def _nearest_fact(value: object, facts: list[Fact]) -> Fact | None:
-    if not isinstance(value, Decimal) or not facts:
-        return None
-    return min(facts, key=lambda fact: abs(fact.value - value))  # type: ignore[operator]
+def _normalize_claim_value(claim: OutputClaim) -> tuple[object, str | None]:
+    if isinstance(claim.normalized_value, Decimal):
+        return normalize_numeric_fact(claim.normalized_value, claim.unit)
+    return claim.normalized_value, claim.unit
+
+
+def _normalize_fact_value(fact: Fact) -> tuple[Decimal | str, str | None]:
+    if isinstance(fact.value, Decimal):
+        return normalize_numeric_fact(fact.value, fact.unit)
+    return fact.value, fact.unit
 
 
 def _values_match(output_value: object, fact_value: Decimal | str, tolerance: float) -> bool:

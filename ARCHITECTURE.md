@@ -18,7 +18,9 @@
 
 后续路线图的剩余重点是更多框架配方、真实项目接入反馈和可视化 diff；基础适配、assertion schema 与 PR 注释示例已落地。
 
-声明抽取边界：当前版本只抽取带单位或量级词的数值声明，例如 `823.2 亿元`、`21.5%`、`10.25 亿美元`、`$3.83 billion`、`USD 10.25M`、`2.5 million dollars`。没有单位的裸数字不会被识别，这是为了降低误报；如果要支持裸数字，需要先有更强的上下文约束。
+声明抽取边界：当前版本只抽取带单位或量级词的数值声明，例如 `823.2 亿元`、`21.5%`、`10.25 亿美元`、`$3.83 billion`、`USD 10.25M`、`1.2M`、`3,830 million dollars`、`21.5 percent`。没有单位的裸数字不会被识别，这是为了降低误报；如果要支持裸数字，需要先有更强的上下文约束。
+
+事实字段边界：`display_value`、`confidence`、`metadata`、`schema_version` 目前用于溯源、展示和兼容演进；v1 的 matcher/policy 只消费显式登记后的 `key/value/unit`。`entity/text` 分支是模型层预留，不代表当前版本已经支持自动实体声明抽取。
 
 ## 0. 设计原则（贯穿所有模块）
 
@@ -72,7 +74,7 @@ class OutputClaim:
     unit: Optional[str] = None
     fact_key: Optional[str] = None    # 显式引用，例如 [fact:net_profit_2025]
     matched_fact_id: Optional[str] = None
-    status: Literal["verified", "candidate_match", "unverified", "contradicted"] = "unverified"
+    status: Literal["verified", "candidate_match", "unverified", "contradicted", "ambiguous"] = "unverified"
     diff: Optional[str] = None       # 矛盾时记录差异说明，例如 "账本 823.20亿，生成 800亿"
 
 @dataclass
@@ -86,6 +88,7 @@ class CoverageReport:
     candidate_match_count: int = 0
     unverified_count: int = 0
     contradicted_count: int = 0
+    ambiguous_count: int = 0
     omitted_required_count: int = 0
     passed: bool = True              # 根据 policy 计算出的整体门禁结果
     policy_reason: str = ""          # 未通过时的原因说明
@@ -149,7 +152,7 @@ with tool_call("get_company_financials", args={"ticker": "AAPL"}, ledger=ledger)
 ```
 
 - 自动记录耗时、参数、原始返回（供 `raw` 字段溯源）。
-- `record_facts` 是 v1 唯一登记入口，要求调用方显式给出 `key/value/unit`——**v1 不做"自动从任意 JSON 里猜哪些字段是事实"**，因为这一步做错比不做还危险（会把无关字段当成事实登记，产生虚假的"已核实"）。自动抽取作为 v2 可选扩展，且必须允许用户审核映射规则。
+- `record_facts` 是 v1 唯一登记入口，要求调用方显式给出 `key/value/unit`。数值事实会归一到基础单位，例如 `"亿元"` / `"万元"` / `"CNY"` 都会转成 CNY 基础值再比较。**v1 不做"自动从任意 JSON 里猜哪些字段是事实"**，因为这一步做错比不做还危险（会把无关字段当成事实登记，产生虚假的"已核实"）。自动抽取作为 v2 可选扩展，且必须允许用户审核映射规则。
 - `raw` 只用于溯源和调试，不参与 v1 的自动匹配；匹配只看显式登记后的 `Fact`。
 
 ### 3.3 Output Claim Extractor（`core/output_claim_extractor.py`）
@@ -157,7 +160,7 @@ with tool_call("get_company_financials", args={"ticker": "AAPL"}, ledger=ledger)
 v1 只处理可确定抽取的输出声明，这是能做到高精度、高确定性的子集：
 
 1. 优先识别显式 fact key 引用：例如 `823.2 亿元 [fact:net_profit_2025]`，抽取为 `OutputClaim(fact_key="net_profit_2025")`。
-2. 正则抽取候选数值片段：中文金额/百分比（如 `823.2 亿元`、`21.5%`）和常见英文 USD 金额（如 `$3.83 billion`、`USD 10.25M`、`2.5 million dollars`），同时保留前后 N 个字符作为 `text_span` 上下文。
+2. 正则抽取候选数值片段：中文金额/百分比（如 `823.2 亿元`、`21.5%`）和常见英文量级/USD 金额（如 `$3.83 billion`、`USD 10.25M`、`1.2M`、`3,830 million dollars`），同时保留前后 N 个字符作为 `text_span` 上下文。
 3. 归一化：统一单位换算（例如"亿"统一转成基础单位的 `Decimal`），生成 `normalized_value` + `unit`。
 4. 输出 `OutputClaim` 列表，`claim_type="numeric"`，此时 `status` 默认 `unverified`，交给 matcher 处理。
 
@@ -177,7 +180,7 @@ def match(
 匹配优先级：
 
 1. **显式 fact key 命中**：如果 `OutputClaim.fact_key` 存在，直接按 key 找对应 `Fact`。数值/实体一致时 → `status="verified"`；存在同 key 但值超出容差 → `status="contradicted"`。
-2. **同单位数值候选匹配**：没有显式 key 时，在同单位的 Fact 里找数值最接近的一条。若相对误差在 `tolerance` 内（默认 0.5%），只标记为 `status="candidate_match"`，写入 `matched_fact_id`。candidate match 是调试线索，不默认计入 verified。
+2. **同单位数值候选匹配**：没有显式 key 时，在同单位的 Fact 里找容差内的候选。若只有一条候选在 `tolerance` 内（默认 0.5%），标记为 `status="candidate_match"`，写入 `matched_fact_id`。如果多条事实都在容差内，标记为 `status="ambiguous"`，不静默选择最近邻。candidate match 是调试线索，不默认计入 verified。
 3. **矛盾判定**：只有显式 key 或上游强关联上下文存在时，才把值不一致判为 `contradicted`。单纯"账本里有另一个相近/不相近数字"不能构成矛盾。
 4. **完全找不到候选** → `status="unverified"`。
 
@@ -205,7 +208,7 @@ Coverage 负责两类核对：
 1. **输出声明核对**：统计 `verified / candidate_match / unverified / contradicted`。
 2. **必需事实覆盖核对**：对每个 `RequiredFact.key`，检查最终输出是否显式引用或通过策略允许的候选匹配覆盖；未覆盖则写入 `omitted_required_facts`。
 
-默认策略：**矛盾和必需事实遗漏一票否决，未核实走比例阈值，candidate match 不默认当作 verified**。这个默认值本身要在 v1 的测试里用真实文本验证一遍，避免拍脑袋定的阈值不可用。
+默认策略：**矛盾、歧义和必需事实遗漏一票否决，未核实走比例阈值，candidate match 不默认当作 verified**。这个默认值本身要在 v1 的测试里用真实文本验证一遍，避免拍脑袋定的阈值不可用。
 
 ## 4. 对外 API（`groundguard/__init__.py` 导出）
 
