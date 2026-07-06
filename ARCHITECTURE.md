@@ -2,6 +2,22 @@
 
 本文档是 [PLAN.md](PLAN.md) 的工程落地版本：定义数据模型、核心算法、目录结构、模块职责边界，以及按 Sprint 拆分的开工任务清单。目标是任何一个 Sprint 都能独立写完、独立测试，不需要等其他模块就绪。
 
+## 当前实现状态
+
+截至当前版本，S0-S6 的核心闭环已经落地并有测试覆盖：
+
+- Python 包骨架、`pyproject.toml`、pytest 配置。
+- `Fact`、`RequiredFact`、`OutputClaim`、`CoverageReport` 数据模型。
+- `Ledger` 内存账本、TTL 过滤、JSONL 落盘/加载。
+- `tool_call` 上下文管理器和显式 `record_facts`。
+- 规则版输出声明抽取器、Matcher、Coverage、Policy。
+- `grounded_generate()` 生成后门禁，支持返回 `GroundedResult`、策略阻断和剥离未核实声明。
+- `examples/financial_report_demo/` 端到端 demo。
+- `groundguard-report` CLI 基础 JSON 报告。
+- 最小 OpenAI-compatible wrapper 与 LangChain-compatible callback handler。
+
+后续路线图仍包括更完整的框架接入示例、promptfoo/DeepEval 兼容断言、PR 注释和可视化 diff。
+
 ## 0. 设计原则（贯穿所有模块）
 
 1. **v1 不依赖任何外部服务**：Ledger 默认纯内存 + 可选 JSONL 落盘，不要求 Postgres/Redis/向量库。保持"本地优先、零基础设施"的定位。

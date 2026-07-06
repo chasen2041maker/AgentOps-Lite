@@ -24,6 +24,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+groundguard-report = "groundguard.cli.report:cli"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=7",
