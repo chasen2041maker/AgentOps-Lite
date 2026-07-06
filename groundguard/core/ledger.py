@@ -7,7 +7,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Callable
 
-from groundguard.core.models import Fact
+from groundguard.core.models import CoverageReport, Fact, RequiredFact
+from groundguard.core.policy import Policy
 
 
 Clock = Callable[[], float]
@@ -63,6 +64,32 @@ class Ledger:
                 if line.strip():
                     ledger._facts.append(_fact_from_jsonable(json.loads(line)))
         return ledger
+
+    def coverage_report(
+        self,
+        answer: str,
+        required_fact_keys: list[str] | None = None,
+        policy: Policy | None = None,
+    ) -> CoverageReport:
+        from groundguard.core.coverage import build_coverage_report
+        from groundguard.core.matcher import match_claims
+        from groundguard.core.output_claim_extractor import extract_output_claims
+        from groundguard.core.policy import evaluate_policy
+
+        active_policy = policy or Policy()
+        facts = self.all_facts()
+        output_claims = match_claims(extract_output_claims(answer), facts)
+        required_facts = [
+            RequiredFact(key=key) for key in (required_fact_keys or [])
+        ]
+        report = build_coverage_report(
+            session_id=self.session_id,
+            output_claims=output_claims,
+            required_facts=required_facts,
+            facts=facts,
+            allow_candidate_matches=active_policy.allow_candidate_matches,
+        )
+        return evaluate_policy(report, active_policy)
 
     @staticmethod
     def _is_expired(fact: Fact, now: float) -> bool:
