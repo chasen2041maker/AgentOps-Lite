@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "groundguard"
+name = "groundguard-ai"
 version = "0.2.3"
 description = "A local-first fact gate for tool-using AI agents."
 readme = "README.md"

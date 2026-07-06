@@ -5,7 +5,7 @@
 Current release:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
+python -m pip install groundguard-ai
 ```
 
 Development install:

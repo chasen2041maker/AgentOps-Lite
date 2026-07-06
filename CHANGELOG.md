@@ -15,6 +15,8 @@ All notable changes to GroundGuard will be documented in this file.
 
 ### Changed
 
+- PyPI distribution name changed to `groundguard-ai` while keeping the Python
+  import package as `groundguard`.
 - Updated launch and project-plan docs from old `v0.1.1` cold-start language to
   current `v0.2.x` language.
 - Documented the exact PyPI Trusted Publisher values needed to publish from

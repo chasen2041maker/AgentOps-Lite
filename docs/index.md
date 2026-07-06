@@ -17,10 +17,10 @@ number, but the model ignored or rewrote it."
 ## Start Here
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
+python -m pip install groundguard-ai
 groundguard-demo
 groundguard-benchmark
 ```
 
-PyPI publishing is prepared through GitHub Trusted Publishing. Until the PyPI
-project is claimed, install from the GitHub tag.
+The PyPI distribution name is `groundguard-ai`; the Python import name remains
+`groundguard`.

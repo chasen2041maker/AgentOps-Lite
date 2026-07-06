@@ -65,13 +65,13 @@ match the facts your tools actually returned.
 ## Quick Start
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
+python -m pip install groundguard-ai
 groundguard-demo
 groundguard-benchmark
 ```
 
-PyPI Trusted Publishing is configured in this repository. Until the PyPI project
-is claimed and the first package is published, install from the GitHub tag.
+The PyPI distribution name is `groundguard-ai`; the Python import name remains
+`groundguard`.
 
 ## 10-Second Demo
 
@@ -132,7 +132,7 @@ omitted_required: 0
 Install the GitHub tag directly:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
+python -m pip install groundguard-ai
 ```
 
 For local development:
