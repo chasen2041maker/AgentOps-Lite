@@ -2,6 +2,29 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.1.2 - 2026-07-06
+
+### Added
+
+- English USD amount extraction for common agent outputs, including
+  `$3.83 billion`, `USD 10.25M`, and `2.5 million dollars`.
+- Regression tests for English currency prefixes, short magnitudes, and dollar
+  suffixes.
+
+### Changed
+
+- README and Chinese README now state the concrete failure scenario more
+  directly and document English amount support.
+- Architecture docs now describe the current extraction boundary with both
+  Chinese and English examples.
+
+### Verified
+
+```text
+python -m pytest
+50 passed
+```
+
 ## v0.1.1 - 2026-07-06
 
 ### Added

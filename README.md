@@ -28,6 +28,10 @@ Tool-using agents often fail in ways that look normal:
 - A tool returns no data, but the model invents a confident-looking number.
 - A final answer cites numbers that cannot be traced to the current tool run.
 
+The dangerous version is mundane: your agent fetched Q3 revenue, then writes
+last year's number into a report for leadership. Nothing crashes. The answer
+just looks professional enough to pass human review.
+
 Tracing tools show what happened. LLM-as-judge tools score an answer after it is
 written. GroundGuard fills a smaller gap: it gives the final answer a
 deterministic, testable fact gate before you let it pass.
@@ -85,7 +89,8 @@ omitted_required: 0
 
 - In-memory `Ledger` with TTL filtering and JSONL persistence.
 - Explicit `tool_call(...).record_facts(...)` registration.
-- Deterministic numeric claim extraction with `[fact:key]` markers.
+- Deterministic numeric claim extraction with `[fact:key]` markers, Chinese
+  amounts, percentages, and common English USD formats.
 - Matching statuses: `verified`, `candidate_match`, `unverified`,
   `contradicted`.
 - Required fact coverage checks for "tool had data, model omitted it" failures.
@@ -103,7 +108,7 @@ GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
 tagged release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.1"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.2"
 ```
 
 For local development:
@@ -195,10 +200,10 @@ flowchart LR
 GroundGuard v1 is deterministic by design: no hosted service, no database, no
 second LLM, and no token-level generation control claims.
 
-Current claim extraction is intentionally narrow: v0.1.1 only extracts numeric
-claims that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
-or `10.25 亿美元`. Bare numbers without units are ignored to avoid false
-positives.
+Current claim extraction is intentionally narrow: it extracts numeric claims
+that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
+`10.25 亿美元`, `$3.83 billion`, `USD 10.25M`, or `2.5 million dollars`.
+Bare numbers without units are ignored to avoid false positives.
 
 ## Where It Fits
 
@@ -250,7 +255,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.1.1
+  uses: chasen2041maker/GroundGuard@v0.1.2
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
@@ -316,6 +321,8 @@ python examples/openai_demo/run.py --live-openai
 - Not a general hallucination detector.
 - Not a hosted observability platform.
 - Not token-level constrained decoding.
+- Not useful for important numbers that are emitted as bare numbers with no
+  unit, magnitude, or fact marker.
 
 ## Roadmap
 

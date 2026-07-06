@@ -50,6 +50,42 @@ def test_extracts_usd_claim_and_preserves_currency_unit():
     assert claims[0].fact_key == "free_cash_flow"
 
 
+def test_extracts_usd_claim_with_dollar_prefix_and_english_magnitude():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims("Revenue reached $3.83 billion [fact:revenue_2025].")
+
+    assert len(claims) == 1
+    assert claims[0].text_span == "Revenue reached $3.83 billion [fact:revenue_2025]"
+    assert claims[0].normalized_value == Decimal("3830000000")
+    assert claims[0].unit == "USD"
+    assert claims[0].fact_key == "revenue_2025"
+
+
+def test_extracts_usd_claim_with_currency_code_and_short_magnitude():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims("Free cash flow was USD 10.25M [fact:free_cash_flow].")
+
+    assert len(claims) == 1
+    assert claims[0].text_span == "Free cash flow was USD 10.25M [fact:free_cash_flow]"
+    assert claims[0].normalized_value == Decimal("10250000")
+    assert claims[0].unit == "USD"
+    assert claims[0].fact_key == "free_cash_flow"
+
+
+def test_extracts_usd_claim_with_dollar_suffix():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims("The contract value was 2.5 million dollars.")
+
+    assert len(claims) == 1
+    assert claims[0].text_span == "contract value was 2.5 million dollars"
+    assert claims[0].normalized_value == Decimal("2500000")
+    assert claims[0].unit == "USD"
+    assert claims[0].fact_key is None
+
+
 def test_extracts_multiple_numeric_claims_in_order():
     from groundguard import extract_output_claims
 
