@@ -2,6 +2,18 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- README hero demo GIF plus a reproducible PowerShell renderer for regenerating
+  it locally with ffmpeg.
+
+### Changed
+
+- Financial report demo output now colorizes failed and passing gate states for
+  recordings and terminal demos.
+
 ## v0.1.2 - 2026-07-06
 
 ### Added

@@ -16,7 +16,7 @@ tools must not be silently omitted.
 
 English | [简体中文](README.zh-CN.md)
 
-<img src="assets/demo-terminal.svg" alt="GroundGuard terminal demo showing omitted required facts before correction and verified facts after correction" width="880">
+<img src="assets/demo.gif" alt="GroundGuard demo: omitted required facts blocked in red, corrected answer verified in green" width="880">
 
 </div>
 

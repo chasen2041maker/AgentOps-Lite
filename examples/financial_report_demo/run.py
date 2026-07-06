@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -66,15 +67,46 @@ def _load_tool_response() -> dict[str, str]:
 
 
 def _print_report(title: str, report: CoverageReport) -> None:
-    print(f"\n{title}")
+    _enable_windows_ansi()
+    print(f"\n{_style(title, bold=True)}")
     print("-" * len(title))
-    print(f"passed: {report.passed}")
-    print(f"verified: {report.verified_count}")
+    status_color = "green" if report.passed else "red"
+    print(f"passed: {_style(str(report.passed), status_color, bold=True)}")
+    print(f"verified: {_style(str(report.verified_count), 'green')}")
     print(f"unverified: {report.unverified_count}")
-    print(f"contradicted: {report.contradicted_count}")
-    print(f"omitted_required: {report.omitted_required_count}")
+    print(f"contradicted: {_style_if_nonzero(report.contradicted_count, 'red')}")
+    print(f"omitted_required: {_style_if_nonzero(report.omitted_required_count, 'red')}")
     if report.policy_reason:
-        print(f"policy_reason: {report.policy_reason}")
+        print(f"policy_reason: {_style(report.policy_reason, 'yellow')}")
+
+
+def _style_if_nonzero(value: int, color: str) -> str:
+    if value == 0:
+        return str(value)
+    return _style(str(value), color)
+
+
+def _style(text: str, color: str | None = None, *, bold: bool = False) -> str:
+    if os.getenv("NO_COLOR"):
+        return text
+    codes: list[str] = []
+    if color == "red":
+        codes.append("91")
+    elif color == "green":
+        codes.append("92")
+    elif color == "yellow":
+        codes.append("93")
+    if bold:
+        codes.append("1")
+    if not codes:
+        return text
+    prefix = "".join(f"\033[{code}m" for code in codes)
+    return f"{prefix}{text}\033[0m"
+
+
+def _enable_windows_ansi() -> None:
+    if os.name == "nt":
+        os.system("")
 
 
 if __name__ == "__main__":
