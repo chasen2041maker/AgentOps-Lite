@@ -208,6 +208,11 @@ def _sort_and_deduplicate_claims(
     seen: set[tuple[object, ...]] = set()
     unique: list[OutputClaim] = []
     for claim in sorted(claims, key=lambda item: _claim_sort_key(item, text)):
+        duplicate_index = _duplicate_claim_index(claim, unique)
+        if duplicate_index is not None:
+            if _claim_is_more_specific(claim, unique[duplicate_index]):
+                unique[duplicate_index] = claim
+            continue
         key = (
             claim.claim_type,
             claim.start,
@@ -243,10 +248,18 @@ def _ranges_overlap(
 
 
 def _duplicates_existing_claim(claim: OutputClaim, claims: list[OutputClaim]) -> bool:
+    return _duplicate_claim_index(claim, claims) is not None
+
+
+def _duplicate_claim_index(claim: OutputClaim, claims: list[OutputClaim]) -> int | None:
     for existing in claims:
         if claim.claim_type != existing.claim_type:
             continue
-        if claim.fact_key != existing.fact_key:
+        if (
+            claim.fact_key != existing.fact_key
+            and claim.fact_key is not None
+            and existing.fact_key is not None
+        ):
             continue
         if claim.unit != existing.unit:
             continue
@@ -259,6 +272,14 @@ def _duplicates_existing_claim(claim: OutputClaim, claims: list[OutputClaim]) ->
             existing.end,
         ):
             continue
+        return claims.index(existing)
+    return None
+
+
+def _claim_is_more_specific(candidate: OutputClaim, existing: OutputClaim) -> bool:
+    if candidate.fact_key is not None and existing.fact_key is None:
+        return True
+    if candidate.matched_fact_id is not None and existing.matched_fact_id is None:
         return True
     return False
 

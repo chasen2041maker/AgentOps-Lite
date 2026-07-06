@@ -3,14 +3,20 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from groundguard.core.output_claim_extractor import Extractor, registered_extractors
+from groundguard.core.extractors.packs import (
+    ecommerce_metric_extractor,
+    finance_metric_extractor,
+    ops_metric_extractor,
+    saas_metric_extractor,
+)
 
 
-_PACKS: dict[str, tuple[str, ...]] = {
+_PACKS: dict[str, tuple[tuple[str, Extractor] | str, ...]] = {
     "numeric": ("numeric",),
-    "finance": ("numeric",),
-    "saas": ("numeric",),
-    "ecommerce": ("numeric",),
-    "ops": ("numeric",),
+    "finance": (("finance_metric", finance_metric_extractor), "numeric"),
+    "saas": (("saas_metric", saas_metric_extractor), "numeric"),
+    "ecommerce": (("ecommerce_metric", ecommerce_metric_extractor), "numeric"),
+    "ops": (("ops_metric", ops_metric_extractor), "numeric"),
 }
 
 
@@ -34,8 +40,12 @@ def extractors_for_packs(packs: list[str] | tuple[str, ...]) -> Mapping[str, Ext
         normalized = pack.strip().lower()
         if normalized not in _PACKS:
             raise ValueError(f"unknown extractor pack: {pack}")
-        for extractor_name in _PACKS[normalized]:
-            if extractor_name not in registry:
-                raise ValueError(f"extractor pack {pack} requires missing extractor: {extractor_name}")
-            resolved[extractor_name] = registry[extractor_name]
+        for extractor_ref in _PACKS[normalized]:
+            if isinstance(extractor_ref, tuple):
+                extractor_name, extractor = extractor_ref
+                resolved[extractor_name] = extractor
+                continue
+            if extractor_ref not in registry:
+                raise ValueError(f"extractor pack {pack} requires missing extractor: {extractor_ref}")
+            resolved[extractor_ref] = registry[extractor_ref]
     return resolved

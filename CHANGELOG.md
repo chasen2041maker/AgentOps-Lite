@@ -7,20 +7,28 @@ All notable changes to GroundGuard will be documented in this file.
 ### Added
 
 - Added `FactGate`, a high-level runtime API for config-driven record/check
-  flows.
+  flows, including `from_config(...)`, `record_tool_result(...)`, and
+  `check(..., required=[...])`.
 - Added built-in scoped extractor packs for finance, SaaS, ecommerce, and ops
-  metrics.
+  metrics. Packs now assign fact keys from common metric labels such as ARR,
+  gross margin, GMV, and P95 latency.
 - Added stable `groundguard.report.v1` report schema plus Markdown, HTML, and
   GitHub PR comment renderers.
 - Added dependency-free OpenTelemetry-style event export under
   `groundguard.integrations.otel`.
+- Added dependency-free Langfuse and Phoenix payload exporters.
 - Added a minimal dependency-free `groundguard-server` entrypoint with
-  `POST /check` gateway-style evaluation.
+  `POST /check` gateway-style evaluation and optional `--config`.
 
 ### Changed
 
 - `groundguard.yml` now supports `extractors.packs` and `report.format`.
 - `groundguard-report` now supports `--format json|markdown|html|github`.
+- `OutputClaim` now carries structured `matched_fact_key`, `ledger_value`, and
+  `answer_value` fields in addition to `diff`.
+- Public protocol objects now expose `schema_version`: `Fact`, `OutputClaim`,
+  `CoverageReport`, `Policy`, `AssertionReport`, and `DatasetCase`.
+- `groundguard.yml` now supports `units.tolerance`.
 
 ## v0.2.4 - 2026-07-06
 

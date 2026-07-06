@@ -20,7 +20,7 @@ jobs:
 
       - name: Run GroundGuard
         id: groundguard
-        uses: chasen2041maker/GroundGuard@v0.2.2
+        uses: chasen2041maker/GroundGuard@v0.2.4
         continue-on-error: true
         with:
           ledger-jsonl: groundguard-ledger.jsonl

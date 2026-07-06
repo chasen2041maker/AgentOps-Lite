@@ -52,6 +52,8 @@ def _covered_required_keys(
     for claim in output_claims:
         if claim.status in {"verified", "contradicted"} and claim.fact_key is not None:
             covered.add(claim.fact_key)
+        if claim.status in {"verified", "contradicted"} and claim.matched_fact_key is not None:
+            covered.add(claim.matched_fact_key)
         if (
             allow_candidate_matches
             and claim.status == "candidate_match"

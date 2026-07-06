@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard" width="560">
+<h1>GroundGuard</h1>
+
+<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
 
 **Stop tool-using agents from ignoring the facts they already fetched.**
 
@@ -326,18 +328,12 @@ from decimal import Decimal
 
 from groundguard import FactGate
 
-gate = FactGate(session_id="req_001")
-gate.record_fact(
-    key="revenue_2025",
-    value=Decimal("3830000000"),
-    unit="USD",
-    source_tool="finance_api",
-    source_call_id="call_1",
-)
+gate = FactGate.from_config("groundguard.yml")
+gate.record_tool_result("revenue_2025", Decimal("3.83"), "billion_usd")
 
 report = gate.check(
-    "Revenue was $3.83 billion [fact:revenue_2025].",
-    required_fact_keys=["revenue_2025"],
+    "Revenue was $3.83 billion.",
+    required=["revenue_2025"],
 )
 
 assert report.passed
@@ -383,8 +379,8 @@ groundguard-report \
 The assertion schema includes `pass`, `success`, `score`, `reason`,
 `namedScores`, top-level `claims`, per-claim `componentResults`, and the full
 GroundGuard report under `metadata.groundguard`. Each claim exposes
-`text_span`, `start`, `end`, `status`, and `diff` for downstream UI
-highlighting.
+`text_span`, `start`, `end`, `status`, `matched_fact_key`, `ledger_value`,
+`answer_value`, and `diff` for downstream UI highlighting.
 
 Render human-readable artifacts for PRs and audits:
 
@@ -411,10 +407,19 @@ extractors:
     - finance
     - saas
     - ops
+units:
+  tolerance: 0.005
 report:
   schema: assertion
   format: github
 ```
+
+## Schema Compatibility
+
+GroundGuard treats `Fact`, `OutputClaim`, `CoverageReport`, `Policy`,
+`AssertionReport`, and `DatasetCase` as public protocol objects. Each object
+includes `schema_version`. GroundGuard will not remove or rename fields within a major version; new fields may be added with defaults so existing integrations
+continue to read older payloads.
 
 ## GitHub Action
 
@@ -422,7 +427,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.2
+  uses: chasen2041maker/GroundGuard@v0.2.4
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

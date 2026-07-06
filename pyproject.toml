@@ -49,6 +49,9 @@ openai = [
 docs = [
   "mkdocs-material>=9",
 ]
+otel = []
+langfuse = []
+phoenix = []
 
 [tool.setuptools.packages.find]
 include = ["groundguard*", "benchmarks*"]

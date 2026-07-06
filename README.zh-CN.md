@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard" width="560">
+<h1>GroundGuard</h1>
+
+<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
 
 **给工具调用型 AI Agent 加一层本地优先的事实门禁。**
 
@@ -239,18 +241,12 @@ from decimal import Decimal
 
 from groundguard import FactGate
 
-gate = FactGate(session_id="req_001")
-gate.record_fact(
-    key="revenue_2025",
-    value=Decimal("3830000000"),
-    unit="USD",
-    source_tool="finance_api",
-    source_call_id="call_1",
-)
+gate = FactGate.from_config("groundguard.yml")
+gate.record_tool_result("revenue_2025", Decimal("3.83"), "billion_usd")
 
 report = gate.check(
-    "Revenue was $3.83 billion [fact:revenue_2025].",
-    required_fact_keys=["revenue_2025"],
+    "Revenue was $3.83 billion.",
+    required=["revenue_2025"],
 )
 
 assert report.passed
@@ -264,6 +260,8 @@ extractors:
     - finance
     - saas
     - ops
+units:
+  tolerance: 0.005
 report:
   schema: assertion
   format: github
@@ -277,7 +275,7 @@ report:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.2
+  uses: chasen2041maker/GroundGuard@v0.2.4
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

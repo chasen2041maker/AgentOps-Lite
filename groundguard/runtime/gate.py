@@ -18,7 +18,7 @@ class FactGate:
 
     def __init__(
         self,
-        session_id: str,
+        session_id: str = "groundguard",
         config: GroundGuardConfig | None = None,
         clock: Clock | None = None,
     ) -> None:
@@ -30,7 +30,7 @@ class FactGate:
     def from_config(
         cls,
         path: str | Path,
-        session_id: str,
+        session_id: str = "groundguard",
         clock: Clock | None = None,
     ) -> FactGate:
         return cls(session_id=session_id, config=load_config(path), clock=clock)
@@ -81,18 +81,44 @@ class FactGate:
         self.ledger.register_fact(fact)
         return self.ledger.query(key)[-1]
 
+    def record_tool_result(
+        self,
+        key: str,
+        value: Decimal | str | int | float,
+        unit: str | None = None,
+        *,
+        source_tool: str = "tool",
+        source_call_id: str = "manual",
+        display_value: str | None = None,
+        raw: Any = None,
+        confidence: float = 1.0,
+        metadata: dict[str, Any] | None = None,
+    ) -> Fact:
+        """Record one numeric tool result using the compact public API."""
+
+        return self.record_fact(
+            key=key,
+            value=value,
+            unit=unit,
+            source_tool=source_tool,
+            source_call_id=source_call_id,
+            display_value=display_value,
+            raw=raw,
+            confidence=confidence,
+            metadata=metadata,
+        )
+
     def check(
         self,
         answer: str,
+        required: list[str] | None = None,
         required_fact_keys: list[str] | None = None,
         policy: Policy | None = None,
         extractors: ExtractorCollection | None = None,
     ) -> CoverageReport:
-        active_required = (
-            required_fact_keys
-            if required_fact_keys is not None
-            else self.config.required_facts
-        )
+        active_required = required if required is not None else required_fact_keys
+        if active_required is None:
+            active_required = self.config.required_facts
         active_policy = policy or self.config.policy
         active_extractors = extractors if extractors is not None else self._extractors()
         return self.ledger.coverage_report(
@@ -100,6 +126,7 @@ class FactGate:
             required_fact_keys=list(active_required),
             policy=active_policy,
             extractors=active_extractors,
+            tolerance=self.config.units.tolerance,
         )
 
     def to_jsonl(self, path: str | Path) -> None:

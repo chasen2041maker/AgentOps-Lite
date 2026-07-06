@@ -21,10 +21,16 @@ class ExtractorConfig:
 
 
 @dataclass(frozen=True)
+class UnitConfig:
+    tolerance: float = 0.005
+
+
+@dataclass(frozen=True)
 class GroundGuardConfig:
     required_facts: list[str] = field(default_factory=list)
     policy: Policy = field(default_factory=Policy)
     extractors: ExtractorConfig = field(default_factory=ExtractorConfig)
+    units: UnitConfig = field(default_factory=UnitConfig)
     report: ReportConfig = field(default_factory=ReportConfig)
 
 
@@ -43,6 +49,7 @@ def load_config(path: str | Path) -> GroundGuardConfig:
 def _config_from_payload(payload: dict[str, Any]) -> GroundGuardConfig:
     policy_payload = _dict_or_empty(payload.get("policy"))
     extractor_payload = _dict_or_empty(payload.get("extractors"))
+    units_payload = _dict_or_empty(payload.get("units"))
     report_payload = _dict_or_empty(payload.get("report"))
     return GroundGuardConfig(
         required_facts=[
@@ -73,6 +80,9 @@ def _config_from_payload(payload: dict[str, Any]) -> GroundGuardConfig:
         ),
         extractors=ExtractorConfig(
             packs=[str(item) for item in _list_or_empty(extractor_payload.get("packs"))],
+        ),
+        units=UnitConfig(
+            tolerance=float(units_payload.get("tolerance", UnitConfig.tolerance)),
         ),
         report=ReportConfig(
             schema=str(report_payload.get("schema", "groundguard")),

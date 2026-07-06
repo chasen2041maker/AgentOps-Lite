@@ -64,6 +64,57 @@ def test_fact_gate_from_config_uses_required_facts_policy_and_extractor_packs():
     assert gate.report_format == "markdown"
 
 
+def test_fact_gate_from_config_can_use_default_session_and_record_tool_result_alias():
+    from groundguard import FactGate
+
+    config_path = _temp_dir() / "groundguard.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "required_facts:",
+                "  - revenue",
+                "extractors:",
+                "  packs:",
+                "    - finance",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    gate = FactGate.from_config(config_path, clock=lambda: 100.0)
+    fact = gate.record_tool_result("revenue", Decimal("3.83"), "usd_b")
+    report = gate.check("Revenue was $3.83 billion.", required=["revenue"])
+
+    assert gate.session_id == "groundguard"
+    assert fact.key == "revenue"
+    assert report.passed is True
+    assert report.output_claims[0].fact_key == "revenue"
+
+
+def test_fact_gate_config_units_tolerance_controls_matching():
+    from groundguard import FactGate
+
+    config_path = _temp_dir() / "groundguard.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "required_facts:",
+                "  - price",
+                "units:",
+                "  tolerance: 0.02",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    gate = FactGate.from_config(config_path, session_id="req_tolerance", clock=lambda: 100.0)
+    gate.record_tool_result("price", Decimal("100"), "USD")
+    report = gate.check("Price was $101 [fact:price].")
+
+    assert report.passed is True
+    assert report.output_claims[0].status == "verified"
+
+
 def test_fact_gate_can_write_and_restore_ledger_jsonl():
     from groundguard import FactGate
 

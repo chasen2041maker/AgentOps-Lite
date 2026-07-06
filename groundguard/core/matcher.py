@@ -86,14 +86,28 @@ def _match_explicit_key(
             claim,
             status="contradicted",
             matched_fact_id=fact.id,
+            matched_fact_key=fact.key,
+            ledger_value=normalized_fact_value,
+            answer_value=normalized_claim_value,
             diff=f"unit ledger={normalized_fact_unit}; output={normalized_claim_unit}",
         )
     if _values_match(normalized_claim_value, normalized_fact_value, tolerance):
-        return replace(claim, status="verified", matched_fact_id=fact.id, diff=None)
+        return replace(
+            claim,
+            status="verified",
+            matched_fact_id=fact.id,
+            matched_fact_key=fact.key,
+            ledger_value=normalized_fact_value,
+            answer_value=normalized_claim_value,
+            diff=None,
+        )
     return replace(
         claim,
         status="contradicted",
         matched_fact_id=fact.id,
+        matched_fact_key=fact.key,
+        ledger_value=normalized_fact_value,
+        answer_value=normalized_claim_value,
         diff=f"ledger={normalized_fact_value}; output={normalized_claim_value}",
     )
 
@@ -105,7 +119,7 @@ def _match_numeric_candidate(
 ) -> OutputClaim:
     normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
     if not isinstance(normalized_claim_value, Decimal):
-        return claim
+        return replace(claim, answer_value=normalized_claim_value)
     candidates = _nearby_numeric_facts(
         normalized_claim_value,
         normalized_claim_unit,
@@ -123,17 +137,22 @@ def _match_numeric_candidate(
             claim,
             status="ambiguous",
             matched_fact_id=None,
+            answer_value=normalized_claim_value,
             diff=f"ambiguous_candidates={candidate_ids}",
         )
     if len(nearby) == 1:
-        nearest = nearby[0].fact
+        nearest_fact = nearby[0]
+        nearest = nearest_fact.fact
         return replace(
             claim,
             status="candidate_match",
             matched_fact_id=nearest.id,
+            matched_fact_key=nearest.key,
+            ledger_value=nearest_fact.value,
+            answer_value=normalized_claim_value,
             diff=None,
         )
-    return claim
+    return replace(claim, answer_value=normalized_claim_value)
 
 
 def _nearby_numeric_facts(

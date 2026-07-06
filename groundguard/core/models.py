@@ -57,10 +57,14 @@ class OutputClaim:
     unit: str | None = None
     fact_key: str | None = None
     matched_fact_id: str | None = None
+    matched_fact_key: str | None = None
+    ledger_value: Any = None
+    answer_value: Any = None
     status: ClaimStatus = "unverified"
     diff: str | None = None
     start: int | None = None
     end: int | None = None
+    schema_version: int = 1
 
 
 @dataclass
@@ -93,3 +97,35 @@ class CoverageReport:
     omitted_required_count: int = 0
     passed: bool = True
     policy_reason: str = ""
+    schema_version: int = 1
+
+
+@dataclass(frozen=True)
+class AssertionReport:
+    """A promptfoo/DeepEval-friendly assertion result protocol."""
+
+    pass_: bool
+    score: float
+    reason: str
+    passed: bool | None = None
+    success: bool | None = None
+    assertion_type: str = "groundguard.fact_coverage"
+    named_scores: dict[str, Any] = field(default_factory=dict)
+    claims: list[dict[str, Any]] = field(default_factory=list)
+    component_results: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    schema_version: int = 1
+
+
+@dataclass(frozen=True)
+class DatasetCase:
+    """A stable JSONL-compatible benchmark/eval case protocol."""
+
+    name: str
+    answer: str
+    expected_passed: bool
+    required_facts: list[str] = field(default_factory=list)
+    facts: list[dict[str, Any]] = field(default_factory=list)
+    policy: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    schema_version: int = 1

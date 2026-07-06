@@ -16,6 +16,7 @@ class Policy:
     on_unverified: Literal["flag", "strip", "block"] = "flag"
     on_contradicted: Literal["flag", "block", "fix", "reask"] = "block"
     on_omitted_required: Literal["flag", "block"] = "block"
+    schema_version: int = 1
 
 
 def evaluate_policy(report: CoverageReport, policy: Policy) -> CoverageReport:

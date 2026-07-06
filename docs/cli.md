@@ -26,6 +26,8 @@ policy:
   allow_candidate_matches: false
   on_contradicted: block
   on_unverified: flag
+units:
+  tolerance: 0.005
 report:
   schema: assertion
   format: json
@@ -53,6 +55,9 @@ groundguard-report \
 Supported formats are `json`, `markdown`, `html`, and `github`. The `github`
 format is a compact Markdown body designed for PR comments.
 
+Reports include `matched_fact_key`, `ledger_value`, `answer_value`, and
+`start:end` spans for claim highlighting and review UIs.
+
 ## Scoped Extractor Packs
 
 ```yaml
@@ -65,3 +70,8 @@ extractors:
 
 Extractor packs are resolved per report run. They do not mutate the global
 process registry, so they are safe to use in multi-tenant services.
+
+Built-in packs cover common labels for finance (`revenue`, `gross_margin`,
+`eps`), SaaS (`arr`, `mrr`, `churn`, `nrr`, `cac`, `ltv`), ecommerce (`gmv`,
+`orders`, `conversion_rate`, `aov`), and ops (`p95_latency`, `error_rate`,
+`uptime`, `throughput`, `storage`).

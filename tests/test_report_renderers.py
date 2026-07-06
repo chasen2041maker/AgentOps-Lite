@@ -16,6 +16,9 @@ def test_versioned_report_schema_flattens_claims_for_tools():
                 unit="USD",
                 status="verified",
                 matched_fact_id="fact_revenue",
+                matched_fact_key="revenue",
+                ledger_value=Decimal("3830000000"),
+                answer_value=Decimal("3830000000"),
                 start=12,
                 end=25,
             )
@@ -30,6 +33,9 @@ def test_versioned_report_schema_flattens_claims_for_tools():
     assert payload["summary"]["passed"] is True
     assert payload["claims"][0]["text_span"] == "Revenue was $3.83 billion"
     assert payload["claims"][0]["status"] == "verified"
+    assert payload["claims"][0]["matched_fact_key"] == "revenue"
+    assert payload["claims"][0]["ledger_value"] == "3830000000"
+    assert payload["claims"][0]["answer_value"] == "3830000000"
     assert payload["claims"][0]["start"] == 12
     assert payload["claims"][0]["end"] == 25
 
@@ -53,6 +59,9 @@ def test_markdown_html_and_github_comment_render_report_claims():
                 unit="USD",
                 status="contradicted",
                 matched_fact_id="fact_revenue",
+                matched_fact_key="revenue",
+                ledger_value=Decimal("3830000000"),
+                answer_value=Decimal("4000000000"),
                 diff="ledger=3830000000; output=4000000000",
             )
         ],
@@ -65,11 +74,29 @@ def test_markdown_html_and_github_comment_render_report_claims():
     html = render_html_report(report)
     comment = render_github_pr_comment(report)
 
-    assert "| Status | Claim | Unit | Matched fact | Diff |" in markdown
+    assert "| Status | Claim | Unit | Matched fact | Ledger value | Answer value | Span | Diff |" in markdown
     assert "contradicted" in markdown
+    assert "3830000000" in markdown
+    assert "4000000000" in markdown
     assert "&lt;wrong&gt;" in html
+    assert "Ledger value" in html
     assert "GroundGuard Fact Gate" in comment
     assert "contradicted_count=1" in comment
+
+
+def test_matcher_populates_structured_ledger_and_answer_values():
+    from groundguard import FactGate
+
+    gate = FactGate(session_id="req_values", clock=lambda: 100.0)
+    gate.record_tool_result("revenue", Decimal("3830000000"), "USD")
+
+    report = gate.check("Revenue was $4.00 billion [fact:revenue].")
+
+    claim = report.output_claims[0]
+    assert claim.status == "contradicted"
+    assert claim.matched_fact_key == "revenue"
+    assert claim.ledger_value == Decimal("3830000000")
+    assert claim.answer_value == Decimal("4000000000")
 
 
 def test_cli_report_can_write_markdown_format():

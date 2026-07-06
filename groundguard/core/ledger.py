@@ -89,6 +89,7 @@ class Ledger:
         required_fact_keys: list[str] | None = None,
         policy: Policy | None = None,
         extractors: ExtractorCollection | None = None,
+        tolerance: float = 0.005,
     ) -> CoverageReport:
         from groundguard.core.coverage import build_coverage_report
         from groundguard.core.matcher import match_claims
@@ -101,7 +102,7 @@ class Ledger:
         active_policy = policy or Policy()
         facts = self.all_facts()
         extracted_claims = extract_output_claims(answer, extractors=extractors)
-        output_claims = match_claims(extracted_claims, facts)
+        output_claims = match_claims(extracted_claims, facts, tolerance=tolerance)
         suspected_numbers = find_suspected_numbers(answer, extracted_claims)
         required_facts = [
             RequiredFact(key=key) for key in (required_fact_keys or [])

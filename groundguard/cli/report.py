@@ -11,6 +11,7 @@ from groundguard.core.ledger import Ledger
 from groundguard.core.models import CoverageReport
 from groundguard.core.policy import Policy
 from groundguard.core.config import load_config
+from groundguard.report import assertion_report_from_coverage
 from groundguard.report import (
     render_github_pr_comment,
     render_html_report,
@@ -65,28 +66,22 @@ def report_to_dict(report: CoverageReport) -> dict[str, Any]:
 def report_to_assertion_dict(report: CoverageReport) -> dict[str, Any]:
     """Return a promptfoo/DeepEval-friendly assertion result payload."""
 
-    reason = report.policy_reason or "GroundGuard policy passed."
+    assertion_report = assertion_report_from_coverage(report)
+    reason = assertion_report.reason
     return {
-        "pass": report.passed,
-        "passed": report.passed,
-        "success": report.passed,
-        "score": _coverage_score(report),
+        "schema_version": assertion_report.schema_version,
+        "pass": assertion_report.pass_,
+        "passed": assertion_report.passed,
+        "success": assertion_report.success,
+        "score": assertion_report.score,
         "reason": reason,
         "assertion": {
-            "type": "groundguard.fact_coverage",
-            "metric": "groundguard.fact_coverage",
+            "type": assertion_report.assertion_type,
+            "metric": assertion_report.assertion_type,
         },
-        "namedScores": {
-            "groundguard.verified_count": report.verified_count,
-            "groundguard.candidate_match_count": report.candidate_match_count,
-            "groundguard.unverified_count": report.unverified_count,
-            "groundguard.contradicted_count": report.contradicted_count,
-            "groundguard.ambiguous_count": report.ambiguous_count,
-            "groundguard.omitted_required_count": report.omitted_required_count,
-            "groundguard.extraction_coverage": report.extraction_coverage,
-        },
-        "claims": _json_safe([asdict(claim) for claim in report.output_claims]),
-        "componentResults": _claim_component_results(report),
+        "namedScores": assertion_report.named_scores,
+        "claims": assertion_report.claims,
+        "componentResults": assertion_report.component_results,
         "metadata": {
             "groundguard": report_to_dict(report),
         },
@@ -165,31 +160,6 @@ def _render_report(
         else report_to_dict(report)
     )
     return json.dumps(payload, ensure_ascii=False, indent=2)
-
-
-def _coverage_score(report: CoverageReport) -> float:
-    total_claims = (
-        report.verified_count
-        + report.candidate_match_count
-        + report.unverified_count
-        + report.contradicted_count
-        + report.ambiguous_count
-    )
-    if total_claims == 0:
-        return 1.0 if report.passed else 0.0
-    return report.verified_count / total_claims
-
-
-def _claim_component_results(report: CoverageReport) -> list[dict[str, Any]]:
-    return [
-        {
-            "pass": claim.status in {"verified", "candidate_match"},
-            "score": 1.0 if claim.status in {"verified", "candidate_match"} else 0.0,
-            "reason": claim.diff or claim.status,
-            "metadata": _json_safe(asdict(claim)),
-        }
-        for claim in report.output_claims
-    ]
 
 
 def _json_safe(value: Any) -> Any:

@@ -45,10 +45,24 @@ for event in events:
 The exporter returns plain dictionaries and does not add OpenTelemetry as a
 runtime dependency.
 
+## Langfuse and Phoenix Payloads
+
+```python
+from groundguard.integrations.langfuse import report_to_langfuse_payload
+from groundguard.integrations.phoenix import report_to_phoenix_eval
+
+langfuse_payload = report_to_langfuse_payload(report)
+phoenix_eval = report_to_phoenix_eval(report)
+```
+
+These helpers return plain dictionaries. GroundGuard does not import Langfuse
+or Phoenix at runtime; applications that already use those SDKs can attach the
+payloads themselves.
+
 ## Gateway Mode
 
 ```bash
-groundguard-server --host 127.0.0.1 --port 8765
+groundguard-server --config groundguard.yml --host 127.0.0.1 --port 8765
 ```
 
 The server exposes `POST /check` with JSON fields `session_id`, `facts`,
