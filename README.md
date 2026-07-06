@@ -1,6 +1,6 @@
 <div align="center">
 
-# GroundGuard
+<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard" width="560">
 
 **Stop tool-using agents from ignoring the facts they already fetched.**
 
@@ -31,6 +31,14 @@ Tool-using agents often fail in ways that look normal:
 Tracing tools show what happened. LLM-as-judge tools score an answer after it is
 written. GroundGuard fills a smaller gap: it gives the final answer a
 deterministic, testable fact gate before you let it pass.
+
+GroundGuard started from a problem I kept seeing in my own workflow: tools had
+already returned the data, but the model's final answer still contained numbers
+that were not reliably checked. Sometimes the model rewrote a number
+incorrectly. Sometimes it omitted a key fact that the tool had already returned.
+I wanted the path from tool data to final answer to be transparent and
+traceable, with a ledger check that can confirm whether the generated numbers
+match the facts that were actually retrieved.
 
 ## 10-Second Demo
 
@@ -311,6 +319,7 @@ python examples/openai_demo/run.py --live-openai
 
 - [Architecture](ARCHITECTURE.md)
 - [Financial report demo](examples/financial_report_demo/README.md)
+- [Brand assets](assets/brand/README.md)
 - [Launch kit](docs/launch/README.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing guide](CONTRIBUTING.md)
