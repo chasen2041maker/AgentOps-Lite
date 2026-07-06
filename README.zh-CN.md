@@ -89,7 +89,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。当前发布版本：`0.2.3`。
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.2.3`；main 分支已准备下一个 `0.2.4` 版本。
 
 ```bash
 python -m pip install groundguard-ai
@@ -286,6 +286,20 @@ handler = GroundGuardCallbackHandler(
 groundguard-demo
 groundguard-demo --json
 groundguard-benchmark
+```
+
+`groundguard-benchmark` 会运行两组确定性 benchmark：25 条核心 smoke case，以及 200 条中英文真实样例数据集。后者覆盖英文/中文输出、USD/EUR/GBP/CNY、百分比、基点、用户、订单、工单、延迟、存储单位、候选匹配、漏写事实、矛盾事实、歧义匹配和裸数字抽取边界。当前期望信号：
+
+```text
+smoke.cases_total: 25
+smoke.expected_failures: 14
+smoke.detected_failures: 14
+smoke.false_positives: 0
+realistic_dataset.cases_total: 200
+realistic_dataset.expected_failures: 71
+realistic_dataset.detected_failures: 71
+realistic_dataset.false_positives: 0
+realistic_dataset.false_negatives: 0
 ```
 
 clone 仓库后还可以运行：

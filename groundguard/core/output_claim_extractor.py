@@ -20,21 +20,38 @@ _EXTRACTORS: dict[str, Extractor] = {}
 _EXTRACTOR_LOCK = threading.RLock()
 
 _DEFAULT_NUMERIC_CLAIM_RE = re.compile(
-    r"(?P<currency_prefix>US\$|USD|\$)?\s*"
+    r"(?P<currency_prefix>US\$|USD|\$|EUR|\u20ac|GBP|\u00a3|CNY|RMB|\u00a5|\uffe5|\u4eba\u6c11\u5e01)?\s*"
     r"(?P<number>[+-]?\d[\d,]*(?:\.\d+)?(?:e[+-]?\d+)?)\s*"
-    r"(?P<magnitude>\u4ebf|\u4e07|\u5343|billion|bn|million|mn|thousand|b|m|k)?\s*"
-    r"(?P<unit>%|percentage points?|percent|\u7f8e\u5143|\u5143|\u80a1|\u500d|US dollars?|USD|dollars?)?"
+    r"(?P<magnitude>\u4ebf|\u4e07|\u5343|billion|bn|million|mn|thousand|[bmk](?![A-Za-z]))?\s*"
+    r"(?P<unit>"
+    r"percentage points?|basis points?|milliseconds?|seconds?|minutes?|hours?|"
+    r"US dollars?|dollars?|euros?|pounds?|yuan|"
+    r"customers?|requests?|orders?|tickets?|incidents?|shipments?|users?|units?|items?|shares?|"
+    r"percent|bps|USD|US\$|EUR|\u20ac|GBP|\u00a3|CNY|RMB|\u00a5|\uffe5|"
+    r"MB|GB|TB|ms|x|times?|%|"
+    r"\u767e\u5206\u70b9|\u4e2a\u767e\u5206\u70b9|\u57fa\u70b9|"
+    r"\u7f8e\u5143|\u5143|\u80a1|\u500d|"
+    r"\u7528\u6237|\u5ba2\u6237|\u8bf7\u6c42|\u8ba2\u5355|\u5de5\u5355|\u4ef6|\u7968|\u6b21|\u5355|"
+    r"\u6beb\u79d2|\u79d2|\u5206\u949f|\u5c0f\u65f6"
+    r")?"
     r"(?:\s*\[fact:(?P<fact_key>[A-Za-z0-9_.:-]+)\])?",
     re.IGNORECASE,
 )
 
 _SUSPECTED_NUMBER_RE = re.compile(
-    r"(?P<currency_prefix>US\$|USD|\$)?\s*"
+    r"(?P<currency_prefix>US\$|USD|\$|EUR|\u20ac|GBP|\u00a3|CNY|RMB|\u00a5|\uffe5|\u4eba\u6c11\u5e01)?\s*"
     r"(?P<number>[+-]?\d[\d,]*(?:\.\d+)?(?:e[+-]?\d+)?)\s*"
     r"(?P<suffix>"
-    r"%|percentage points?|percent|"
-    r"\u4ebf|\u4e07|\u5343|\u7f8e\u5143|\u5143|\u80a1|\u500d|"
-    r"billion|bn|million|mn|thousand|US dollars?|USD|dollars?|[bmk]"
+    r"percentage points?|basis points?|milliseconds?|seconds?|minutes?|hours?|"
+    r"US dollars?|dollars?|euros?|pounds?|yuan|"
+    r"customers?|requests?|orders?|tickets?|incidents?|shipments?|users?|units?|items?|shares?|"
+    r"percent|bps|USD|US\$|EUR|\u20ac|GBP|\u00a3|CNY|RMB|\u00a5|\uffe5|"
+    r"MB|GB|TB|ms|x|times?|%|"
+    r"\u4ebf|\u4e07|\u5343|\u767e\u5206\u70b9|\u4e2a\u767e\u5206\u70b9|\u57fa\u70b9|"
+    r"\u7f8e\u5143|\u5143|\u80a1|\u500d|"
+    r"\u7528\u6237|\u5ba2\u6237|\u8bf7\u6c42|\u8ba2\u5355|\u5de5\u5355|\u4ef6|\u7968|\u6b21|\u5355|"
+    r"\u6beb\u79d2|\u79d2|\u5206\u949f|\u5c0f\u65f6|"
+    r"billion|bn|million|mn|thousand|[bmk](?![A-Za-z])"
     r")?",
     re.IGNORECASE,
 )

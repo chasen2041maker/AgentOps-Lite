@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "groundguard-ai"
-version = "0.2.3"
+version = "0.2.4"
 description = "A local-first fact gate for tool-using AI agents."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -54,6 +54,7 @@ include = ["groundguard*", "benchmarks*"]
 
 [tool.setuptools.package-data]
 groundguard = ["py.typed"]
+benchmarks = ["*.jsonl"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

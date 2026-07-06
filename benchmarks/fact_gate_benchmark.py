@@ -4,9 +4,14 @@ import json
 import time
 from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from groundguard import Fact, Ledger, Policy
+
+
+REALISTIC_DATASET_PATH = Path(__file__).with_name("realistic_cases.jsonl")
+STRICT_POLICY = Policy(max_unverified_ratio=0.0, on_unverified="block")
 
 
 @dataclass(frozen=True)
@@ -15,7 +20,7 @@ class BenchmarkCase:
     answer: str
     expected_passed: bool
     required_facts: list[str]
-    policy: Policy = Policy(max_unverified_ratio=0.0, on_unverified="block")
+    policy: Policy = STRICT_POLICY
 
 
 CASES = [
@@ -250,6 +255,141 @@ def run_benchmark() -> dict[str, Any]:
     }
 
 
+def run_realistic_dataset_benchmark(
+    path: str | Path = REALISTIC_DATASET_PATH,
+) -> dict[str, Any]:
+    """Run the broader JSONL benchmark of realistic agent outputs."""
+
+    rows: list[dict[str, Any]] = []
+    elapsed_ms: list[float] = []
+    for payload in _load_dataset(path):
+        ledger = _ledger_from_payload(payload)
+        policy = _policy_from_payload(payload.get("policy"))
+        start = time.perf_counter()
+        report = ledger.coverage_report(
+            str(payload["answer"]),
+            required_fact_keys=[str(key) for key in payload.get("required", [])],
+            policy=policy,
+        )
+        elapsed_ms.append((time.perf_counter() - start) * 1000)
+        expected_passed = bool(payload["expected_passed"])
+        rows.append(
+            {
+                "name": str(payload["name"]),
+                "expected_passed": expected_passed,
+                "actual_passed": report.passed,
+                "verified": report.verified_count,
+                "candidate_match": report.candidate_match_count,
+                "contradicted": report.contradicted_count,
+                "ambiguous": report.ambiguous_count,
+                "unverified": report.unverified_count,
+                "omitted_required": report.omitted_required_count,
+                "policy_reason": report.policy_reason,
+            }
+        )
+
+    expected_failures = sum(1 for row in rows if row["expected_passed"] is False)
+    detected_failures = sum(
+        1
+        for row in rows
+        if row["expected_passed"] is False and row["actual_passed"] is False
+    )
+    false_positives = [
+        row
+        for row in rows
+        if row["expected_passed"] is True and row["actual_passed"] is False
+    ]
+    false_negatives = [
+        row
+        for row in rows
+        if row["expected_passed"] is False and row["actual_passed"] is True
+    ]
+    mismatches = false_positives + false_negatives
+    return {
+        "cases_total": len(rows),
+        "expected_failures": expected_failures,
+        "detected_failures": detected_failures,
+        "false_positives": len(false_positives),
+        "false_negatives": len(false_negatives),
+        "mean_elapsed_ms": round(sum(elapsed_ms) / len(elapsed_ms), 3) if rows else 0,
+        "mismatches": mismatches,
+        "cases": rows,
+    }
+
+
+def run_benchmark_suite() -> dict[str, Any]:
+    """Run smoke and realistic benchmark suites with concise metrics."""
+
+    return {
+        "smoke": _benchmark_summary(run_benchmark()),
+        "realistic_dataset": _benchmark_summary(run_realistic_dataset_benchmark()),
+    }
+
+
+def _benchmark_summary(result: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "cases_total",
+        "expected_failures",
+        "detected_failures",
+        "false_positives",
+        "false_negatives",
+        "mean_elapsed_ms",
+    ]
+    return {key: result[key] for key in keys if key in result}
+
+
+def _load_dataset(path: str | Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with Path(path).open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                rows.append(json.loads(line))
+    return rows
+
+
+def _ledger_from_payload(payload: dict[str, Any]) -> Ledger:
+    ledger = Ledger(session_id=str(payload["name"]))
+    for index, fact_payload in enumerate(payload.get("facts", []), start=1):
+        key = str(fact_payload["key"])
+        value_kind = str(fact_payload.get("value_kind", "numeric"))
+        raw_value = str(fact_payload["value"])
+        value = Decimal(raw_value) if value_kind == "numeric" else raw_value
+        ledger.register_fact(
+            Fact(
+                id=str(fact_payload.get("id", f"{payload['name']}_{index}_{key}")),
+                source_tool=str(fact_payload.get("source_tool", "dataset_fixture")),
+                source_call_id=str(fact_payload.get("source_call_id", "call_1")),
+                key=key,
+                value=value,
+                value_kind="numeric" if value_kind == "numeric" else "text",
+                unit=_optional_str(fact_payload.get("unit")),
+                display_value=_optional_str(fact_payload.get("display_value")),
+            )
+        )
+    return ledger
+
+
+def _policy_from_payload(payload: object) -> Policy:
+    if not isinstance(payload, dict):
+        return STRICT_POLICY
+    return Policy(
+        max_unverified_ratio=float(payload.get("max_unverified_ratio", 0.0)),
+        max_contradicted=int(payload.get("max_contradicted", 0)),
+        max_ambiguous=int(payload.get("max_ambiguous", 0)),
+        max_omitted_required=int(payload.get("max_omitted_required", 0)),
+        allow_candidate_matches=bool(payload.get("allow_candidate_matches", False)),
+        on_unverified=payload.get("on_unverified", "block"),
+        on_contradicted=payload.get("on_contradicted", "block"),
+        on_omitted_required=payload.get("on_omitted_required", "block"),
+    )
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
 def _build_ledger() -> Ledger:
     ledger = Ledger(session_id="benchmark")
     ledger.register_fact(
@@ -346,7 +486,7 @@ def _build_ledger() -> Ledger:
 
 
 def main() -> None:
-    print(json.dumps(run_benchmark(), indent=2, ensure_ascii=False))
+    print(json.dumps(run_benchmark_suite(), indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

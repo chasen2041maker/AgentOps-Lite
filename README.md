@@ -73,7 +73,8 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Current published version: `0.2.3`.
+`groundguard`. Latest PyPI release: `0.2.3`; the main branch is prepared for the
+next `0.2.4` release.
 
 ## 10-Second Demo
 
@@ -288,16 +289,26 @@ cited the facts your tools already returned.
 groundguard-benchmark
 ```
 
-The bundled deterministic benchmark currently checks 25 cases across verified
-answers, omitted required facts, contradicted tagged facts, candidate matches,
-ambiguous matches, bare-number extraction limits, and invented unregistered
-numbers under a blocking policy. Expected signal:
+The bundled benchmark now runs two deterministic suites:
+
+- a 25-case smoke suite for the core fact-gate contract,
+- a 200-case bilingual realistic dataset covering English and Chinese outputs,
+  currencies, percentages, basis points, users, orders, tickets, latency,
+  storage units, candidate matches, omissions, contradictions, ambiguity, and
+  bare-number extraction limits.
+
+Expected signal:
 
 ```text
-cases_total: 25
-expected_failures: 14
-detected_failures: 14
-false_positives: 0
+smoke.cases_total: 25
+smoke.expected_failures: 14
+smoke.detected_failures: 14
+smoke.false_positives: 0
+realistic_dataset.cases_total: 200
+realistic_dataset.expected_failures: 71
+realistic_dataset.detected_failures: 71
+realistic_dataset.false_positives: 0
+realistic_dataset.false_negatives: 0
 ```
 
 ## CLI

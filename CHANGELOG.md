@@ -6,6 +6,11 @@ All notable changes to GroundGuard will be documented in this file.
 
 ### Added
 
+- Added a 200-case bilingual realistic benchmark dataset covering English and
+  Chinese outputs, USD/EUR/GBP/CNY, percentages, basis points, users,
+  customers, requests, orders, tickets, incidents, latency, storage units,
+  candidate matches, omissions, contradictions, ambiguous matches, invented
+  claims, and bare-number extraction limits.
 - Expanded `groundguard-benchmark` from 4 smoke cases to 25 deterministic cases
   covering verified claims, omissions, contradictions, candidate matches,
   ambiguous matches, bare-number extraction limits, and invented numbers.
@@ -15,12 +20,22 @@ All notable changes to GroundGuard will be documented in this file.
 
 ### Changed
 
+- `groundguard-benchmark` now prints a concise smoke plus realistic-dataset
+  summary instead of dumping only the smoke case list.
 - PyPI distribution name changed to `groundguard-ai` while keeping the Python
   import package as `groundguard`.
 - Updated launch and project-plan docs from old `v0.1.1` cold-start language to
   current `v0.2.x` language.
 - Documented the exact PyPI Trusted Publisher values needed to publish from
   GitHub Actions.
+
+### Fixed
+
+- Numeric claim extraction now recognizes EUR, GBP, CNY/yuan, basis points,
+  common operational units, latency units, storage units, and English/Chinese
+  business-count units.
+- Short magnitudes like `M` no longer steal compact units such as `ms` and
+  `MB`.
 
 ## v0.2.2 - 2026-07-06
 

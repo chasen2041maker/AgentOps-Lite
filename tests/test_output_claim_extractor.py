@@ -104,6 +104,57 @@ def test_extracts_common_english_magnitude_and_percent_claims():
     assert [claim.unit for claim in claims] == [None, "USD", "%"]
 
 
+def test_extracts_common_global_currencies_and_basis_points():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims(
+        "ARR was EUR 1.25 million [fact:arr_eur], "
+        "pipeline was \u00a32.5 million [fact:pipeline_gbp], "
+        "revenue was RMB 383 billion [fact:revenue_cny], "
+        "and spread widened by 120 bps [fact:spread]."
+    )
+
+    assert [claim.normalized_value for claim in claims] == [
+        Decimal("1250000"),
+        Decimal("2500000"),
+        Decimal("383000000000"),
+        Decimal("120"),
+    ]
+    assert [claim.unit for claim in claims] == ["EUR", "GBP", "CNY", "bps"]
+
+
+def test_extracts_operational_units_without_stealing_compact_suffixes():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims(
+        "Active users reached 1.2M users [fact:active_users], "
+        "P95 latency was 230ms [fact:p95_latency], "
+        "and storage used was 64 MB [fact:storage]."
+    )
+
+    assert [claim.normalized_value for claim in claims] == [
+        Decimal("1200000"),
+        Decimal("230"),
+        Decimal("64"),
+    ]
+    assert [claim.unit for claim in claims] == ["users", "ms", "MB"]
+
+
+def test_extracts_chinese_operational_units():
+    from groundguard import extract_output_claims
+
+    claims = extract_output_claims(
+        "\u6d3b\u8dc3\u7528\u6237\u8fbe\u52301.2\u4e07\u7528\u6237 [fact:active_users]\uff0c"
+        "P95\u5ef6\u8fdf\u4e3a230\u6beb\u79d2 [fact:p95_latency]\u3002"
+    )
+
+    assert [claim.normalized_value for claim in claims] == [
+        Decimal("12000"),
+        Decimal("230"),
+    ]
+    assert [claim.unit for claim in claims] == ["users", "ms"]
+
+
 def test_extracts_multiple_numeric_claims_in_order():
     from groundguard import extract_output_claims
 
