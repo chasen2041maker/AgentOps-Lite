@@ -134,6 +134,25 @@ def test_grounded_generate_blocks_required_fact_omissions_by_default():
         raise AssertionError("expected GroundingPolicyError")
 
 
+def test_grounded_generate_blocks_any_failed_policy_report():
+    from groundguard import GroundingPolicyError, Ledger, Policy, grounded_generate
+
+    ledger = Ledger(session_id="req_001", clock=lambda: 100.0)
+
+    try:
+        grounded_generate(
+            prompt="总结财务表现",
+            llm_call=lambda prompt: "现金储备为 120 亿元。",
+            ledger=ledger,
+            policy=Policy(max_unverified_ratio=0.1, on_unverified="flag"),
+        )
+    except GroundingPolicyError as exc:
+        assert exc.report.passed is False
+        assert "unverified_ratio=1.000" in str(exc)
+    else:
+        raise AssertionError("expected GroundingPolicyError")
+
+
 def test_grounded_generate_strips_unverified_claims_when_policy_requests_strip():
     from groundguard import Fact, GroundedResult, Ledger, Policy, grounded_generate
 

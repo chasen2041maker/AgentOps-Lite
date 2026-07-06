@@ -1,0 +1,61 @@
+# Changelog
+
+All notable changes to GroundGuard will be documented in this file.
+
+## v0.1.0 - 2026-07-06
+
+GroundGuard v0.1.0 is the first runnable pre-alpha release: a local-first fact
+gate for tool-using AI agents. It checks the final answer before release so
+important numeric claims can trace back to explicitly registered tool facts, and
+required facts returned by tools are not silently omitted.
+
+### Added
+
+- In-memory `Ledger` with TTL filtering and JSONL persistence.
+- Explicit `tool_call(...).record_facts(...)` fact registration.
+- Deterministic numeric claim extraction with `[fact:key]` support.
+- Claim matching with `verified`, `candidate_match`, `unverified`, and
+  `contradicted` states.
+- Coverage reports for output claims and required fact omissions.
+- Policy evaluation with block, flag, and strip behavior.
+- `grounded_generate()` wrapper with optional `GroundedResult` reports.
+- CLI JSON reporting through `groundguard-report`.
+- Minimal OpenAI-compatible callable wrapper.
+- Minimal LangChain-compatible callback handler with explicit fact mapping.
+- Financial report demo showing omitted required facts before correction.
+- English and Simplified Chinese README files.
+
+### Verified
+
+```text
+python -m pytest
+39 passed
+```
+
+```text
+python examples/financial_report_demo/run.py
+
+Before GroundGuard correction
+-----------------------------
+passed: False
+verified: 0
+unverified: 0
+contradicted: 0
+omitted_required: 2
+policy_reason: omitted_required_count=2 > max_omitted_required=0
+
+After fact-key correction
+-------------------------
+passed: True
+verified: 2
+unverified: 0
+contradicted: 0
+omitted_required: 0
+```
+
+### Not Included
+
+- No tracing dashboard.
+- No LLM-as-judge evaluator.
+- No database-backed observability platform.
+- No token-level generation control.

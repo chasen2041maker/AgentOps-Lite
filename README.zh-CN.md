@@ -102,6 +102,27 @@ print(result.report.passed)
 python examples/financial_report_demo/run.py
 ```
 
+这段输出就是当前最核心的 before/after 证据：
+
+```text
+Before GroundGuard correction
+-----------------------------
+passed: False
+verified: 0
+unverified: 0
+contradicted: 0
+omitted_required: 2
+policy_reason: omitted_required_count=2 > max_omitted_required=0
+
+After fact-key correction
+-------------------------
+passed: True
+verified: 2
+unverified: 0
+contradicted: 0
+omitted_required: 0
+```
+
 ## 核心概念
 
 | 概念 | 含义 | 作用 |
@@ -127,6 +148,8 @@ flowchart LR
 ```
 
 GroundGuard v1 保持确定性：不依赖托管服务、不引入数据库、不用第二个 LLM 做判断，也不承诺 token 级生成控制。
+
+当前声明抽取范围是刻意收窄的：v0.1.0 只抽取带单位或量级词的数值声明，例如 `823.2 亿元`、`21.5%`、`10.25 亿美元`。没有单位的裸数字会被忽略，以减少误报。
 
 ## CLI
 
@@ -196,7 +219,7 @@ handler = GroundGuardCallbackHandler(
 
 - [架构设计](ARCHITECTURE.md)
 - [财务报告 demo](examples/financial_report_demo/README.md)
-- [发布说明草稿](docs/release-notes-draft.md)
+- [更新日志](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 安全说明

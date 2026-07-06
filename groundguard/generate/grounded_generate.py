@@ -47,7 +47,7 @@ def grounded_generate(
             required_fact_keys=required_fact_keys,
             policy=active_policy,
         )
-    if _should_block(report, active_policy):
+    if _should_block(report):
         raise GroundingPolicyError(answer=answer, report=report)
     if return_report:
         return GroundedResult(answer=answer, report=report)
@@ -102,15 +102,5 @@ def _cleanup_stripped_text(text: str) -> str:
     return text.replace("，。", "。").strip(" ，")
 
 
-def _should_block(report: CoverageReport, policy: Policy) -> bool:
-    if (
-        policy.on_contradicted == "block"
-        and report.contradicted_count > policy.max_contradicted
-    ):
-        return True
-    if (
-        policy.on_omitted_required == "block"
-        and report.omitted_required_count > policy.max_omitted_required
-    ):
-        return True
-    return policy.on_unverified == "block" and not report.passed
+def _should_block(report: CoverageReport) -> bool:
+    return not report.passed

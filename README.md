@@ -108,6 +108,27 @@ Run the bundled demo:
 python examples/financial_report_demo/run.py
 ```
 
+The demo shows the core failure mode clearly:
+
+```text
+Before GroundGuard correction
+-----------------------------
+passed: False
+verified: 0
+unverified: 0
+contradicted: 0
+omitted_required: 2
+policy_reason: omitted_required_count=2 > max_omitted_required=0
+
+After fact-key correction
+-------------------------
+passed: True
+verified: 2
+unverified: 0
+contradicted: 0
+omitted_required: 0
+```
+
 ## Core Concepts
 
 | Concept | What It Means | Why It Matters |
@@ -134,6 +155,11 @@ flowchart LR
 
 GroundGuard v1 is deterministic by design: no hosted service, no database, no
 second LLM, and no token-level generation control claims.
+
+Current claim extraction is intentionally narrow: v0.1.0 only extracts numeric
+claims that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
+or `10.25 亿美元`. Bare numbers without units are ignored to avoid false
+positives.
 
 ## CLI
 
@@ -207,7 +233,7 @@ not guess which arbitrary JSON fields are evidence.
 
 - [Architecture](ARCHITECTURE.md)
 - [Financial report demo](examples/financial_report_demo/README.md)
-- [Draft release notes](docs/release-notes-draft.md)
+- [Changelog](CHANGELOG.md)
 - [Contributing guide](CONTRIBUTING.md)
 
 ## Security
