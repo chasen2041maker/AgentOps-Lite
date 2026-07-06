@@ -89,7 +89,7 @@ GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
 tagged release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.0"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.1"
 ```
 
 For local development:
@@ -181,7 +181,7 @@ flowchart LR
 GroundGuard v1 is deterministic by design: no hosted service, no database, no
 second LLM, and no token-level generation control claims.
 
-Current claim extraction is intentionally narrow: v0.1.0 only extracts numeric
+Current claim extraction is intentionally narrow: v0.1.1 only extracts numeric
 claims that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
 or `10.25 亿美元`. Bare numbers without units are ignored to avoid false
 positives.
@@ -236,7 +236,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.1.0
+  uses: chasen2041maker/GroundGuard@v0.1.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

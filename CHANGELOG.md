@@ -2,7 +2,7 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
-## Unreleased
+## v0.1.1 - 2026-07-06
 
 ### Added
 
@@ -12,11 +12,22 @@ All notable changes to GroundGuard will be documented in this file.
 - Runnable decorator, LangGraph-style node, and native OpenAI SDK examples.
 - Composite `action.yml` for GitHub Actions fact gates.
 - PR coverage comment workflow example and launch kit.
+- GroundGuard logo, icon, and brand board assets.
 
 ### Changed
 
 - README and Chinese README now lead with the before/after demo, comparison
   table, CI usage, and current project boundaries.
+- README and launch copy now include the author's real workflow motivation.
+- Release references now point to `v0.1.1`, where the GitHub Action and latest
+  examples actually exist.
+
+### Verified
+
+```text
+python -m pytest
+47 passed
+```
 
 ## v0.1.0 - 2026-07-06
 
