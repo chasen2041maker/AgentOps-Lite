@@ -19,6 +19,8 @@ All notable changes to GroundGuard will be documented in this file.
 - README and Chinese README now lead with the before/after demo, comparison
   table, CI usage, and current project boundaries.
 - README and launch copy now include the author's real workflow motivation.
+- README now includes a plain-language "bookkeeping + reconciliation" explanation
+  for new readers.
 - Release references now point to `v0.1.1`, where the GitHub Action and latest
   examples actually exist.
 
