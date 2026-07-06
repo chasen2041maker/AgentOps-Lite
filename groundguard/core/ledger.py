@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import time
 from dataclasses import asdict, replace
 from decimal import Decimal
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from groundguard.core.models import CoverageReport, Fact, RequiredFact
+from groundguard.core.output_claim_extractor import ExtractorCollection
 from groundguard.core.policy import Policy
 
 
@@ -15,13 +17,19 @@ Clock = Callable[[], float]
 
 
 class Ledger:
-    """In-memory store for explicitly registered facts."""
+    """In-memory store for explicitly registered facts.
+
+    A Ledger is intended to be scoped to one request/session/tenant. Its in-memory
+    indexes are protected by a re-entrant lock so parallel tool calls can record
+    facts without corrupting the local snapshot.
+    """
 
     def __init__(self, session_id: str, clock: Clock | None = None) -> None:
         self.session_id = session_id
         self._clock = clock or time.time
         self._facts: list[Fact] = []
         self._facts_by_key: dict[str, list[Fact]] = {}
+        self._lock = threading.RLock()
 
     def __enter__(self) -> Ledger:
         return self
@@ -33,26 +41,30 @@ class Ledger:
         recorded = fact
         if fact.recorded_at == 0.0:
             recorded = replace(fact, recorded_at=self._clock())
-        self._append_fact(recorded)
+        with self._lock:
+            self._append_fact(recorded)
 
     def query(self, key: str) -> list[Fact]:
         now = self._clock()
-        return [
-            fact
-            for fact in self._facts_by_key.get(key, [])
-            if not self._is_expired(fact, now)
-        ]
+        with self._lock:
+            return [
+                fact
+                for fact in self._facts_by_key.get(key, [])
+                if not self._is_expired(fact, now)
+            ]
 
     def all_facts(self, exclude_expired: bool = True) -> list[Fact]:
-        if not exclude_expired:
-            return list(self._facts)
         now = self._clock()
-        return [fact for fact in self._facts if not self._is_expired(fact, now)]
+        with self._lock:
+            if not exclude_expired:
+                return list(self._facts)
+            return [fact for fact in self._facts if not self._is_expired(fact, now)]
 
     def to_jsonl(self, path: str | Path) -> None:
         output_path = Path(path)
+        facts = self.all_facts(exclude_expired=False)
         with output_path.open("w", encoding="utf-8") as handle:
-            for fact in self._facts:
+            for fact in facts:
                 handle.write(json.dumps(_fact_to_jsonable(fact), ensure_ascii=False))
                 handle.write("\n")
 
@@ -76,6 +88,7 @@ class Ledger:
         answer: str,
         required_fact_keys: list[str] | None = None,
         policy: Policy | None = None,
+        extractors: ExtractorCollection | None = None,
     ) -> CoverageReport:
         from groundguard.core.coverage import build_coverage_report
         from groundguard.core.matcher import match_claims
@@ -87,7 +100,7 @@ class Ledger:
 
         active_policy = policy or Policy()
         facts = self.all_facts()
-        extracted_claims = extract_output_claims(answer)
+        extracted_claims = extract_output_claims(answer, extractors=extractors)
         output_claims = match_claims(extracted_claims, facts)
         suspected_numbers = find_suspected_numbers(answer, extracted_claims)
         required_facts = [

@@ -128,3 +128,29 @@ def test_ledger_jsonl_round_trip_preserves_decimal_and_metadata():
     assert fact.raw == {"net_profit": "82320000000"}
     assert fact.metadata == {"ticker": "AAPL"}
     assert fact.recorded_at == 10.0
+
+
+def test_coverage_report_accepts_scoped_extractors_without_global_registration():
+    from groundguard import Ledger, OutputClaim
+
+    def extract_entity(text: str) -> list[OutputClaim]:
+        start = text.index("ACME Corp")
+        return [
+            OutputClaim(
+                id="claim_entity_acme",
+                text_span="ACME Corp",
+                claim_type="entity",
+                normalized_value="ACME Corp",
+                start=start,
+                end=start + len("ACME Corp"),
+            )
+        ]
+
+    ledger = Ledger(session_id="req_001")
+
+    report = ledger.coverage_report(
+        "ACME Corp reported revenue.",
+        extractors={"entity": extract_entity},
+    )
+
+    assert [claim.claim_type for claim in report.output_claims] == ["entity"]

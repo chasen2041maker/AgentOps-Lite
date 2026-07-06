@@ -17,7 +17,7 @@ number, but the model ignored or rewrote it."
 ## Start Here
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.1"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
 groundguard-demo
 groundguard-benchmark
 ```

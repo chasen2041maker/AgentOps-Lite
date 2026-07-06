@@ -30,6 +30,35 @@ def test_custom_extractor_can_be_registered_and_unregistered():
     assert claims[1].text_span.endswith("revenue of $3.83 billion")
 
 
+def test_scoped_extractor_does_not_mutate_global_registry():
+    from groundguard import OutputClaim, extract_output_claims, registered_extractors
+
+    def extract_entities(text: str) -> list[OutputClaim]:
+        start = text.index("ACME Corp")
+        return [
+            OutputClaim(
+                id="claim_entity_acme",
+                text_span="ACME Corp",
+                claim_type="entity",
+                normalized_value="ACME Corp",
+                unit=None,
+                start=start,
+                end=start + len("ACME Corp"),
+            )
+        ]
+
+    before = registered_extractors()
+    scoped_claims = extract_output_claims(
+        "ACME Corp reported revenue of $3.83 billion.",
+        extractors={"entity": extract_entities},
+    )
+    global_claims = extract_output_claims("ACME Corp reported revenue of $3.83 billion.")
+
+    assert [claim.claim_type for claim in scoped_claims] == ["entity"]
+    assert [claim.claim_type for claim in global_claims] == ["numeric"]
+    assert registered_extractors() == before
+
+
 def test_duplicate_extractor_spans_are_deduplicated():
     from decimal import Decimal
 

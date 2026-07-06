@@ -2,6 +2,39 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.2.2 - 2026-07-06
+
+### Fixed
+
+- Explicit `[fact:key]` matching now uses the latest registered fact for a key
+  instead of the first one, avoiding false contradictions after tool retries or
+  refreshed data.
+
+### Added
+
+- Request-scoped extractor support for `extract_output_claims(...)` and
+  `Ledger.coverage_report(...)`, so multi-tenant services can use custom
+  extractors without mutating process-global state.
+- Regression tests for repeated fact-key updates, scoped extractor isolation,
+  and module-level duplicate definitions.
+
+### Changed
+
+- `Ledger` now guards its in-memory fact list and key index with a re-entrant
+  lock for safer parallel tool-call registration inside one session.
+- Matcher numeric buckets are sorted and searched with `bisect` before final
+  tolerance filtering.
+- Removed shadowed duplicate implementations from `units.py` and
+  `output_claim_extractor.py`.
+- README and docs now document process-global extractor registration versus
+  request-scoped extractor usage.
+
+### Verified
+
+```text
+python -m pytest
+```
+
 ## v0.2.1 - 2026-07-06
 
 ### Added

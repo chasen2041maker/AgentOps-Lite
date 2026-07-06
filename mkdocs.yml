@@ -21,4 +21,5 @@ nav:
   - Benchmark: benchmark.md
   - Limitations: limitations.md
   - Publishing: publishing.md
+  - Release v0.2.2: releases/v0.2.2.md
   - Release v0.2.1: releases/v0.2.1.md

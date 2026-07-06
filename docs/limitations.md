@@ -7,8 +7,10 @@ GroundGuard is deliberately narrow.
 - It does not use a second LLM for v1 policy decisions.
 - It does not require a database or hosted service.
 - It does not guarantee that every number in free text can be extracted.
+- It is an in-memory request/session ledger, not a cross-tenant fact store.
+- The global extractor registry is process-wide; use scoped extractors for
+  per-request or per-tenant customization.
 
 Bare numbers without units are exposed through `uncovered_numbers`, but they are
 not treated as verified claims by default. This avoids false positives while
 making the extraction boundary visible.
-

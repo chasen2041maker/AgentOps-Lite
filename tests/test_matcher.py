@@ -1,16 +1,24 @@
 from decimal import Decimal
 
 
-def _fact(key: str, value: Decimal, unit: str = "CNY"):
+def _fact(
+    key: str,
+    value: Decimal,
+    unit: str = "CNY",
+    *,
+    fact_id: str | None = None,
+    recorded_at: float = 0.0,
+):
     from groundguard import Fact
 
     return Fact(
-        id=f"fact_{key}",
+        id=fact_id or f"fact_{key}",
         source_tool="tool",
         source_call_id="call_1",
         key=key,
         value=value,
         unit=unit,
+        recorded_at=recorded_at,
     )
 
 
@@ -37,6 +45,22 @@ def test_explicit_fact_key_match_marks_claim_verified():
 
     assert claim.status == "verified"
     assert claim.matched_fact_id == "fact_net_profit_2025"
+    assert claim.diff is None
+
+
+def test_explicit_fact_key_uses_latest_registered_fact():
+    from groundguard import match_claims
+
+    [claim] = match_claims(
+        [_claim(Decimal("150"), unit="CNY", fact_key="price")],
+        [
+            _fact("price", Decimal("100"), fact_id="fact_price_old", recorded_at=1.0),
+            _fact("price", Decimal("150"), fact_id="fact_price_new", recorded_at=2.0),
+        ],
+    )
+
+    assert claim.status == "verified"
+    assert claim.matched_fact_id == "fact_price_new"
     assert claim.diff is None
 
 

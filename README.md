@@ -65,7 +65,7 @@ match the facts your tools actually returned.
 ## Quick Start
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.1"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
 groundguard-demo
 groundguard-benchmark
 ```
@@ -111,8 +111,8 @@ omitted_required: 0
   `uncovered_numbers`, and `extraction_coverage` show which numeric-looking
   spans were seen but not covered by extractors.
 - Pluggable extractor registry through `register_extractor(...)` /
-  `unregister_extractor(...)`, so teams can add domain-specific claims without
-  forking the core extractor.
+  `unregister_extractor(...)`, plus request-scoped extractor lists for
+  multi-tenant services that must not mutate global process state.
 - Matching statuses: `verified`, `candidate_match`, `unverified`,
   `contradicted`, and `ambiguous`.
 - Required fact coverage checks for "tool had data, model omitted it" failures.
@@ -132,7 +132,7 @@ omitted_required: 0
 Install the GitHub tag directly:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.1"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.2"
 ```
 
 For local development:
@@ -248,6 +248,26 @@ def extract_tickers(text: str) -> list[OutputClaim]:
     return []
 ```
 
+For multi-tenant services, prefer request-scoped extractors so one tenant's
+rules do not affect another tenant in the same Python process:
+
+```python
+from groundguard import extract_output_claims, registered_extractors
+
+claims = extract_output_claims(
+    answer,
+    extractors=registered_extractors() | {"ticker_entity": extract_tickers},
+)
+
+report = ledger.coverage_report(
+    answer,
+    extractors=registered_extractors() | {"ticker_entity": extract_tickers},
+)
+```
+
+`register_extractor(...)` is process-global and is best used at application
+startup, not dynamically per request.
+
 ## Where It Fits
 
 | Tool family | What it is great at | Where GroundGuard fits |
@@ -328,7 +348,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.1
+  uses: chasen2041maker/GroundGuard@v0.2.2
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

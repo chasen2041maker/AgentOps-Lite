@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from dataclasses import replace
 from decimal import Decimal
@@ -36,13 +37,18 @@ class _NormalizedFact:
 class _FactMatchIndex:
     by_key: dict[str, Fact]
     numeric_by_unit: dict[str | None, list[_NormalizedFact]]
+    numeric_values_by_unit: dict[str | None, list[Decimal]]
 
 
 def _build_fact_match_index(facts: list[Fact]) -> _FactMatchIndex:
     by_key: dict[str, Fact] = {}
     numeric_by_unit: dict[str | None, list[_NormalizedFact]] = {}
     for fact in facts:
-        by_key.setdefault(fact.key, fact)
+        existing = by_key.get(fact.key)
+        if existing is None or fact.recorded_at >= existing.recorded_at:
+            by_key[fact.key] = fact
+
+    for fact in by_key.values():
         normalized_value, normalized_unit = _normalize_fact_value(fact)
         if isinstance(normalized_value, Decimal):
             numeric_by_unit.setdefault(normalized_unit, []).append(
@@ -52,7 +58,17 @@ def _build_fact_match_index(facts: list[Fact]) -> _FactMatchIndex:
                     unit=normalized_unit,
                 )
             )
-    return _FactMatchIndex(by_key=by_key, numeric_by_unit=numeric_by_unit)
+    numeric_values_by_unit: dict[str | None, list[Decimal]] = {}
+    for unit, bucket in numeric_by_unit.items():
+        bucket.sort(key=lambda item: item.value)
+        numeric_values_by_unit[unit] = [
+            item.value for item in bucket if isinstance(item.value, Decimal)
+        ]
+    return _FactMatchIndex(
+        by_key=by_key,
+        numeric_by_unit=numeric_by_unit,
+        numeric_values_by_unit=numeric_values_by_unit,
+    )
 
 
 def _match_explicit_key(
@@ -90,7 +106,12 @@ def _match_numeric_candidate(
     normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
     if not isinstance(normalized_claim_value, Decimal):
         return claim
-    candidates = fact_index.numeric_by_unit.get(normalized_claim_unit, [])
+    candidates = _nearby_numeric_facts(
+        normalized_claim_value,
+        normalized_claim_unit,
+        fact_index,
+        tolerance,
+    )
     nearby = [
         normalized_fact
         for normalized_fact in candidates
@@ -113,6 +134,34 @@ def _match_numeric_candidate(
             diff=None,
         )
     return claim
+
+
+def _nearby_numeric_facts(
+    value: Decimal,
+    unit: str | None,
+    fact_index: _FactMatchIndex,
+    tolerance: float,
+) -> list[_NormalizedFact]:
+    candidates = fact_index.numeric_by_unit.get(unit, [])
+    values = fact_index.numeric_values_by_unit.get(unit, [])
+    if not candidates or not values:
+        return []
+    radius = _search_radius(value, tolerance)
+    if radius is None:
+        return candidates
+    start = bisect_left(values, value - radius)
+    end = bisect_right(values, value + radius)
+    return candidates[start:end]
+
+
+def _search_radius(value: Decimal, tolerance: float) -> Decimal | None:
+    tolerance_value = Decimal(str(tolerance))
+    if tolerance_value < 0:
+        return Decimal("0")
+    if tolerance_value >= 1:
+        return None
+    base = max(abs(value), Decimal("1"))
+    return (base * tolerance_value) / (Decimal("1") - tolerance_value)
 
 
 def _normalize_claim_value(claim: OutputClaim) -> tuple[object, str | None]:

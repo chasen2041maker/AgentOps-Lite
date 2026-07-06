@@ -4,6 +4,8 @@ from groundguard.core.ledger import Ledger
 from groundguard.core.matcher import match_claims
 from groundguard.core.models import CoverageReport, Fact, OutputClaim, RequiredFact, SuspectedNumber
 from groundguard.core.output_claim_extractor import (
+    Extractor,
+    ExtractorCollection,
     extract_output_claims,
     find_suspected_numbers,
     register_extractor,
@@ -16,6 +18,8 @@ from groundguard.generate import GroundedResult, GroundingPolicyError, grounded,
 
 __all__ = [
     "CoverageReport",
+    "Extractor",
+    "ExtractorCollection",
     "Fact",
     "GroundedResult",
     "GroundingPolicyError",
