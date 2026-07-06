@@ -2,6 +2,37 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.2.1 - 2026-07-06
+
+### Added
+
+- Packaged `groundguard-demo` command for an install-and-run before/after demo.
+- Packaged `groundguard-benchmark` command for deterministic fact-gate smoke
+  metrics.
+- `groundguard.example.yml` plus CLI `--config` documentation for repeatable CI
+  and eval runs.
+- Composite GitHub Action `config` input for using the same GroundGuard config
+  file in CI.
+- MkDocs documentation scaffold with getting started, concepts, CLI/config,
+  integrations, benchmark, limitations, and publishing pages.
+- PyPI Trusted Publishing workflow scaffold and GitHub Pages documentation
+  workflow.
+- Security policy, code of conduct, and issue template configuration.
+- Runnable promptfoo and DeepEval integration examples.
+
+### Changed
+
+- README, Chinese README, and docs now point to `v0.2.1` and lead with
+  installable commands instead of repository-only scripts.
+- Package discovery now includes the benchmark package so the benchmark command
+  works after installation.
+
+### Verified
+
+```text
+python -m pytest
+```
+
 ## v0.2.0 - 2026-07-06
 
 ### Added

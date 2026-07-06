@@ -14,7 +14,11 @@ tools must not be silently omitted.
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 
-English | [简体中文](README.zh-CN.md)
+[Docs](docs/index.md) | [Examples](examples) | [Benchmark](benchmarks) |
+[Releases](https://github.com/chasen2041maker/GroundGuard/releases) |
+[Roadmap](PLAN.md) | [Contributing](CONTRIBUTING.md)
+
+English | [Chinese README](README.zh-CN.md)
 
 <img src="assets/demo.gif" alt="GroundGuard demo: omitted required facts blocked in red, corrected answer verified in green" width="880">
 
@@ -57,6 +61,17 @@ In plain terms, GroundGuard works like bookkeeping for agent facts:
 
 That means the model can still write naturally, but the key numbers have to
 match the facts your tools actually returned.
+
+## Quick Start
+
+```bash
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.1"
+groundguard-demo
+groundguard-benchmark
+```
+
+PyPI Trusted Publishing is configured in this repository. Until the PyPI project
+is claimed and the first package is published, install from the GitHub tag.
 
 ## 10-Second Demo
 
@@ -114,11 +129,10 @@ omitted_required: 0
 
 ## Installation
 
-GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
-tagged release directly from GitHub:
+Install the GitHub tag directly:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.0"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.1"
 ```
 
 For local development:
@@ -136,7 +150,7 @@ For the live OpenAI SDK example, install the optional SDK extra after cloning:
 python -m pip install -e ".[openai]"
 ```
 
-## Quick Start
+## Python API
 
 ```python
 from decimal import Decimal
@@ -147,15 +161,15 @@ from groundguard import Ledger, Policy, grounded_generate, tool_call
 def fetch_financials(ticker: str) -> dict[str, str]:
     return {
         "ticker": ticker,
-        "net_profit": "82320000000",
-        "revenue": "383000000000",
+        "net_profit": "823200000",
+        "revenue": "3830000000",
     }
 
 
 def fake_llm(prompt: str) -> str:
     return (
-        "Revenue was 3830 亿元 [fact:revenue_2025], "
-        "and net profit was 823.2 亿元 [fact:net_profit_2025]."
+        "Revenue was $3.83 billion [fact:revenue_2025], "
+        "and net profit was $823.2 million [fact:net_profit_2025]."
     )
 
 
@@ -164,8 +178,8 @@ with Ledger(session_id="req_001") as ledger:
         result = fetch_financials("ACME")
         call.record_facts(
             {
-                "net_profit_2025": (Decimal(result["net_profit"]), "CNY"),
-                "revenue_2025": (Decimal(result["revenue"]), "CNY"),
+                "net_profit_2025": (Decimal(result["net_profit"]), "USD"),
+                "revenue_2025": (Decimal(result["revenue"]), "USD"),
             },
             raw=result,
         )
@@ -211,16 +225,16 @@ GroundGuard v1 is deterministic by design: no hosted service, no database, no
 second LLM, and no token-level generation control claims.
 
 Current claim extraction is intentionally narrow: it extracts numeric claims
-that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
-`10.25 亿美元`, `$3.83 billion`, `USD 10.25M`, `1.2M`,
-`3,830 million dollars`, or `21.5 percent`. Bare numbers without units are
+that include a unit or magnitude marker, such as `$3.83 billion`,
+`USD 10.25M`, `1.2M`, `3,830 million dollars`, `21.5%`, or
+`21.5 percent`. Bare numbers without units are
 not treated as verified claims to avoid false positives. They are still exposed
 in `CoverageReport.uncovered_numbers`, so users can see what the deterministic
 extractors did not cover.
 
 Registered numeric facts are normalized before matching. For example,
-`(Decimal("823.2"), "亿元")`, `(Decimal("8232000"), "万元")`, and
-`(Decimal("82320000000"), "CNY")` all compare as the same CNY value.
+`(Decimal("3.83"), "usd_b")`, `(Decimal("3830"), "usd_m")`, and
+`(Decimal("3830000000"), "USD")` all compare as the same USD value.
 
 Custom extractors can be registered when your domain needs additional claim
 types:
@@ -246,6 +260,23 @@ def extract_tickers(text: str) -> list[OutputClaim]:
 GroundGuard is deliberately narrow: it asks whether the final answer covered and
 cited the facts your tools already returned.
 
+## Benchmark
+
+```bash
+groundguard-benchmark
+```
+
+The bundled deterministic smoke benchmark currently checks 4 cases:
+fully verified, omitted required fact, contradicted tagged fact, and invented
+unregistered number under a blocking policy. Expected signal:
+
+```text
+cases_total: 4
+expected_failures: 3
+detected_failures: 3
+false_positives: 0
+```
+
 ## CLI
 
 Generate a JSON coverage report from a ledger JSONL file and an answer file:
@@ -263,6 +294,16 @@ Without an installed console script:
 
 ```bash
 python -m groundguard.cli.report --ledger-jsonl facts.jsonl --answer-file answer.txt
+```
+
+Use a config file for CI and repeatable eval runs:
+
+```bash
+cp groundguard.example.yml groundguard.yml
+groundguard-report \
+  --config groundguard.yml \
+  --ledger-jsonl facts.jsonl \
+  --answer-file answer.txt
 ```
 
 Emit a promptfoo/DeepEval-friendly assertion payload:
@@ -287,10 +328,11 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.0
+  uses: chasen2041maker/GroundGuard@v0.2.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
+    config: groundguard.yml
     required-facts: net_profit_2025,revenue_2025
     schema: assertion
     fail-on-policy: "true"
@@ -342,11 +384,23 @@ deepeval_payload = to_deepeval_result(report)
 
 ## Runnable Examples
 
+Packaged commands:
+
+```bash
+groundguard-demo
+groundguard-demo --json
+groundguard-benchmark
+```
+
+Repository examples after cloning:
+
 ```bash
 python examples/financial_report_demo/run.py
 python examples/decorator_demo/run.py
 python examples/langgraph_node/run.py
 python examples/openai_demo/run.py
+python examples/promptfoo_groundguard/run.py
+python examples/deepeval_groundguard/run.py
 ```
 
 For a live OpenAI SDK call:
@@ -381,6 +435,10 @@ python examples/openai_demo/run.py --live-openai
 
 ## Documentation
 
+- [Docs home](docs/index.md)
+- [Getting started](docs/getting-started.md)
+- [CLI and config](docs/cli.md)
+- [Benchmark](docs/benchmark.md)
 - [Architecture](ARCHITECTURE.md)
 - [Financial report demo](examples/financial_report_demo/README.md)
 - [Brand assets](assets/brand/README.md)

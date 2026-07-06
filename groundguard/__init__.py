@@ -1,4 +1,5 @@
 from groundguard.core.coverage import build_coverage_report
+from groundguard.core.config import GroundGuardConfig, ReportConfig, load_config
 from groundguard.core.ledger import Ledger
 from groundguard.core.matcher import match_claims
 from groundguard.core.models import CoverageReport, Fact, OutputClaim, RequiredFact, SuspectedNumber
@@ -18,9 +19,11 @@ __all__ = [
     "Fact",
     "GroundedResult",
     "GroundingPolicyError",
+    "GroundGuardConfig",
     "Ledger",
     "OutputClaim",
     "Policy",
+    "ReportConfig",
     "RequiredFact",
     "SuspectedNumber",
     "ToolCall",
@@ -30,6 +33,7 @@ __all__ = [
     "find_suspected_numbers",
     "grounded",
     "grounded_generate",
+    "load_config",
     "match_claims",
     "register_extractor",
     "registered_extractors",

@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible GroundGuard issue.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Include a small ledger, answer text, command, or code snippet. Use synthetic data.
+      render: markdown
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: GroundGuard version
+      placeholder: "0.2.1"
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Avoid sharing private prompts, customer data, credentials, or proprietary metrics.

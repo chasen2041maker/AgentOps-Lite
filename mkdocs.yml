@@ -1,0 +1,24 @@
+site_name: GroundGuard
+site_description: A local-first fact gate for tool-using AI agents.
+site_url: https://chasen2041maker.github.io/GroundGuard/
+repo_url: https://github.com/chasen2041maker/GroundGuard
+repo_name: chasen2041maker/GroundGuard
+exclude_docs: |
+  launch/**
+  superpowers/**
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.instant
+    - content.code.copy
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Concepts: concepts.md
+  - CLI and Config: cli.md
+  - Integrations: integrations.md
+  - Benchmark: benchmark.md
+  - Limitations: limitations.md
+  - Publishing: publishing.md
+  - Release v0.2.1: releases/v0.2.1.md

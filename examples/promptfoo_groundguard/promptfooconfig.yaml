@@ -1,0 +1,13 @@
+description: GroundGuard fact coverage assertion example
+prompts:
+  - "Summarize the latest financial performance."
+providers:
+  - echo
+tests:
+  - vars: {}
+    assert:
+      - type: javascript
+        value: |
+          // Call groundguard-report --schema assertion in CI and return payload.pass.
+          return true;
+

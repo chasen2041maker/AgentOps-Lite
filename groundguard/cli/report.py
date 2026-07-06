@@ -10,22 +10,41 @@ from typing import Any
 from groundguard.core.ledger import Ledger
 from groundguard.core.models import CoverageReport
 from groundguard.core.policy import Policy
+from groundguard.core.config import load_config
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    config = load_config(args.config) if args.config else None
     ledger = Ledger.from_jsonl(args.ledger_jsonl, session_id=args.session_id)
     answer = Path(args.answer_file).read_text(encoding="utf-8")
-    policy = Policy(allow_candidate_matches=args.allow_candidate_matches)
+    policy = config.policy if config else Policy()
+    if args.allow_candidate_matches:
+        policy = Policy(
+            max_unverified_ratio=policy.max_unverified_ratio,
+            max_contradicted=policy.max_contradicted,
+            max_ambiguous=policy.max_ambiguous,
+            max_omitted_required=policy.max_omitted_required,
+            allow_candidate_matches=True,
+            on_unverified=policy.on_unverified,
+            on_contradicted=policy.on_contradicted,
+            on_omitted_required=policy.on_omitted_required,
+        )
+    required_facts = list(config.required_facts if config else [])
+    required_facts.extend(args.required_fact)
+    schema = args.schema or (config.report.schema if config else "groundguard")
+    fail_on_policy = args.fail_on_policy or (
+        config.report.fail_on_policy if config else False
+    )
     report = ledger.coverage_report(
         answer,
-        required_fact_keys=args.required_fact,
+        required_fact_keys=required_facts,
         policy=policy,
     )
     payload = (
         report_to_assertion_dict(report)
-        if args.schema == "assertion"
+        if schema == "assertion"
         else report_to_dict(report)
     )
     output = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -33,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.output).write_text(f"{output}\n", encoding="utf-8")
     else:
         print(output)
-    if args.fail_on_policy and not report.passed:
+    if fail_on_policy and not report.passed:
         return 1
     return 0
 
@@ -81,6 +100,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ledger-jsonl", required=True, help="Path to Ledger JSONL facts.")
     parser.add_argument("--answer-file", required=True, help="Path to generated answer text.")
     parser.add_argument(
+        "--config",
+        help="Optional groundguard.yml or JSON config file.",
+    )
+    parser.add_argument(
         "--required-fact",
         action="append",
         default=[],
@@ -98,7 +121,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--schema",
         choices=["groundguard", "assertion"],
-        default="groundguard",
+        default=None,
         help=(
             "JSON schema to emit. 'assertion' includes promptfoo/DeepEval-style "
             "pass, score, reason, and metadata fields."

@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a focused GroundGuard capability or integration.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What agent fact-coverage failure should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: Show the smallest interface you would want to use.
+      render: markdown
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Claim extraction
+        - Matching / unit normalization
+        - Policy
+        - CLI / CI
+        - Framework integration
+        - Documentation
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Note whether this would preserve local-first, no-database, no-second-LLM behavior.

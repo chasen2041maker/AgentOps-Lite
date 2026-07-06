@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GroundGuard releases
+    url: https://github.com/chasen2041maker/GroundGuard/releases
+    about: Check release notes before reporting a version-specific issue.
+

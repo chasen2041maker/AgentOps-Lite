@@ -1,0 +1,15 @@
+required_facts:
+  - revenue_2025
+  - net_profit_2025
+policy:
+  allow_candidate_matches: false
+  max_unverified_ratio: 0.0
+  max_contradicted: 0
+  max_ambiguous: 0
+  max_omitted_required: 0
+  on_unverified: block
+  on_contradicted: block
+  on_omitted_required: block
+report:
+  schema: assertion
+  fail_on_policy: true

@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "groundguard"
-version = "0.2.0"
+version = "0.2.1"
 description = "A local-first fact gate for tool-using AI agents."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
   { name = "GroundGuard contributors" },
 ]
@@ -16,7 +16,6 @@ keywords = ["ai", "agents", "fact-checking", "llm", "testing"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -24,19 +23,33 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/chasen2041maker/GroundGuard"
+Documentation = "https://chasen2041maker.github.io/GroundGuard/"
+Repository = "https://github.com/chasen2041maker/GroundGuard"
+Issues = "https://github.com/chasen2041maker/GroundGuard/issues"
+Changelog = "https://github.com/chasen2041maker/GroundGuard/blob/main/CHANGELOG.md"
+
 [project.scripts]
+groundguard-benchmark = "benchmarks.fact_gate_benchmark:main"
+groundguard-demo = "groundguard.cli.demo:cli"
 groundguard-report = "groundguard.cli.report:cli"
 
 [project.optional-dependencies]
 dev = [
+  "build>=1",
   "pytest>=7",
+  "twine>=5",
 ]
 openai = [
   "openai>=1",
 ]
+docs = [
+  "mkdocs-material>=9",
+]
 
 [tool.setuptools.packages.find]
-include = ["groundguard*"]
+include = ["groundguard*", "benchmarks*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
