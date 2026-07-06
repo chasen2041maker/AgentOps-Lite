@@ -73,8 +73,7 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Latest PyPI release: `0.2.3`; the main branch is prepared for the
-next `0.2.4` release.
+`groundguard`. Latest PyPI release: `0.2.4`.
 
 ## 10-Second Demo
 
