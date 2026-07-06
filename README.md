@@ -40,6 +40,20 @@ I wanted the path from tool data to final answer to be transparent and
 traceable, with a ledger check that can confirm whether the generated numbers
 match the facts that were actually retrieved.
 
+In plain terms, GroundGuard works like bookkeeping for agent facts:
+
+1. When a tool returns an important value, you explicitly record it in a local
+   ledger.
+2. When the model writes the final answer, GroundGuard extracts the numeric
+   claims it made.
+3. GroundGuard compares the answer against the ledger and reports what was
+   verified, missing, invented, or contradicted.
+4. Your policy decides whether to only flag the issue, strip unsafe claims, or
+   block the answer before it reaches the user.
+
+That means the model can still write naturally, but the key numbers have to
+match the facts your tools actually returned.
+
 ## 10-Second Demo
 
 ```bash
