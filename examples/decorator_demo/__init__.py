@@ -1,0 +1,1 @@
+"""Framework-free decorator demo."""

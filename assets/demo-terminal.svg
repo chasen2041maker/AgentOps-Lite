@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="420" viewBox="0 0 980 420" role="img" aria-label="GroundGuard terminal demo showing a failed report before correction and a passing report after fact-key correction">
+  <rect width="980" height="420" rx="18" fill="#0f172a"/>
+  <rect x="1" y="1" width="978" height="418" rx="18" fill="none" stroke="#334155"/>
+  <circle cx="38" cy="34" r="7" fill="#ef4444"/>
+  <circle cx="62" cy="34" r="7" fill="#f59e0b"/>
+  <circle cx="86" cy="34" r="7" fill="#22c55e"/>
+  <text x="116" y="39" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#cbd5e1">python examples/financial_report_demo/run.py</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+    <text x="52" y="92" fill="#f8fafc" font-weight="700">Before GroundGuard correction</text>
+    <line x1="52" y1="112" x2="352" y2="112" stroke="#475569" stroke-width="2"/>
+    <text x="52" y="150" fill="#fca5a5">passed: False</text>
+    <text x="52" y="184" fill="#cbd5e1">verified: 0</text>
+    <text x="52" y="218" fill="#cbd5e1">unverified: 0</text>
+    <text x="52" y="252" fill="#cbd5e1">contradicted: 0</text>
+    <text x="52" y="286" fill="#fca5a5">omitted_required: 2</text>
+    <text x="52" y="320" fill="#fca5a5">policy_reason: omitted_required_count=2</text>
+
+    <path d="M444 205 H536" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+    <path d="M516 185 L536 205 L516 225" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <text x="604" y="92" fill="#f8fafc" font-weight="700">After fact-key correction</text>
+    <line x1="604" y1="112" x2="884" y2="112" stroke="#475569" stroke-width="2"/>
+    <text x="604" y="150" fill="#86efac">passed: True</text>
+    <text x="604" y="184" fill="#86efac">verified: 2</text>
+    <text x="604" y="218" fill="#cbd5e1">unverified: 0</text>
+    <text x="604" y="252" fill="#cbd5e1">contradicted: 0</text>
+    <text x="604" y="286" fill="#86efac">omitted_required: 0</text>
+  </g>
+
+  <rect x="52" y="354" width="876" height="36" rx="8" fill="#111827" stroke="#1f2937"/>
+  <text x="70" y="377" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#cbd5e1">A deterministic local gate for facts your tools already returned.</text>
+</svg>

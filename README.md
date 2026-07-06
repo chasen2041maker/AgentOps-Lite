@@ -2,11 +2,12 @@
 
 # GroundGuard
 
-**A local-first fact gate for tool-using AI agents.**
+**Stop tool-using agents from ignoring the facts they already fetched.**
 
-GroundGuard checks an agent's final answer before release: important numeric
-claims must trace back to facts explicitly registered from tool calls, and
-required facts returned by tools must not be silently omitted.
+GroundGuard is a deterministic, local-first fact gate for AI agents. It checks
+the final answer before release: important numeric claims must trace back to
+facts explicitly registered from tool calls, and required facts returned by
+tools must not be silently omitted.
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
@@ -14,6 +15,8 @@ required facts returned by tools must not be silently omitted.
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 
 English | [简体中文](README.zh-CN.md)
+
+<img src="assets/demo-terminal.svg" alt="GroundGuard terminal demo showing omitted required facts before correction and verified facts after correction" width="880">
 
 </div>
 
@@ -29,6 +32,33 @@ Tracing tools show what happened. LLM-as-judge tools score an answer after it is
 written. GroundGuard fills a smaller gap: it gives the final answer a
 deterministic, testable fact gate before you let it pass.
 
+## 10-Second Demo
+
+```bash
+python examples/financial_report_demo/run.py
+```
+
+The bundled demo reproduces the failure mode GroundGuard is built for:
+
+```text
+Before GroundGuard correction
+-----------------------------
+passed: False
+verified: 0
+unverified: 0
+contradicted: 0
+omitted_required: 2
+policy_reason: omitted_required_count=2 > max_omitted_required=0
+
+After fact-key correction
+-------------------------
+passed: True
+verified: 2
+unverified: 0
+contradicted: 0
+omitted_required: 0
+```
+
 ## What Works Today
 
 - In-memory `Ledger` with TTL filtering and JSONL persistence.
@@ -39,20 +69,34 @@ deterministic, testable fact gate before you let it pass.
 - Required fact coverage checks for "tool had data, model omitted it" failures.
 - `CoverageReport` and configurable `Policy` evaluation.
 - `grounded_generate()` with report return, blocking, and conservative stripping.
-- `groundguard-report` CLI for JSON reports.
-- Minimal OpenAI-compatible and LangChain-compatible adapters.
-- A reproducible financial report demo.
+- `@grounded(...)` decorator for framework-free Python functions.
+- `groundguard-report` CLI with native and assertion-style JSON schemas.
+- OpenAI-compatible wrapper, LangChain-compatible callback, and LangGraph-style
+  node examples.
+- A composite GitHub Action for CI fact gates.
 
 ## Installation
 
-GroundGuard is still pre-alpha and is not published to PyPI yet. Install from
-source:
+GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
+tagged release directly from GitHub:
+
+```bash
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.0"
+```
+
+For local development:
 
 ```bash
 git clone https://github.com/chasen2041maker/GroundGuard.git
 cd GroundGuard
 python -m pip install -e ".[dev]"
 python -m pytest
+```
+
+For the live OpenAI SDK example, install the optional SDK extra after cloning:
+
+```bash
+python -m pip install -e ".[openai]"
 ```
 
 ## Quick Start
@@ -102,33 +146,6 @@ print(result.answer)
 print(result.report.passed)
 ```
 
-Run the bundled demo:
-
-```bash
-python examples/financial_report_demo/run.py
-```
-
-The demo shows the core failure mode clearly:
-
-```text
-Before GroundGuard correction
------------------------------
-passed: False
-verified: 0
-unverified: 0
-contradicted: 0
-omitted_required: 2
-policy_reason: omitted_required_count=2 > max_omitted_required=0
-
-After fact-key correction
--------------------------
-passed: True
-verified: 2
-unverified: 0
-contradicted: 0
-omitted_required: 0
-```
-
 ## Core Concepts
 
 | Concept | What It Means | Why It Matters |
@@ -161,6 +178,18 @@ claims that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
 or `10.25 亿美元`. Bare numbers without units are ignored to avoid false
 positives.
 
+## Where It Fits
+
+| Tool family | What it is great at | Where GroundGuard fits |
+| --- | --- | --- |
+| Langfuse / Phoenix | Traces, sessions, observability, debugging timelines. | Adds a deterministic final-answer gate before release. |
+| promptfoo / DeepEval | Test suites, eval assertions, scorecards. | Emits assertion-style JSON so fact coverage can be one metric in those suites. |
+| LLM-as-judge evaluators | Semantic quality checks and subjective grading. | Avoids a second model for facts that already came from tools. |
+| Constrained decoding | Token-level format or grammar control. | Checks post-generation factual coverage; it does not claim token-level control. |
+
+GroundGuard is deliberately narrow: it asks whether the final answer covered and
+cited the facts your tools already returned.
+
 ## CLI
 
 Generate a JSON coverage report from a ledger JSONL file and an answer file:
@@ -179,6 +208,37 @@ Without an installed console script:
 ```bash
 python -m groundguard.cli.report --ledger-jsonl facts.jsonl --answer-file answer.txt
 ```
+
+Emit a promptfoo/DeepEval-friendly assertion payload:
+
+```bash
+groundguard-report \
+  --ledger-jsonl facts.jsonl \
+  --answer-file answer.txt \
+  --required-fact net_profit_2025 \
+  --schema assertion
+```
+
+The assertion schema includes `pass`, `success`, `score`, `reason`,
+`namedScores`, and the full GroundGuard report under `metadata.groundguard`.
+
+## GitHub Action
+
+Use the composite action in another repository:
+
+```yaml
+- name: Run GroundGuard
+  uses: chasen2041maker/GroundGuard@v0.1.0
+  with:
+    ledger-jsonl: groundguard-ledger.jsonl
+    answer-file: answer.txt
+    required-facts: net_profit_2025,revenue_2025
+    schema: assertion
+    fail-on-policy: "true"
+```
+
+For a PR comment example, see
+[`docs/examples/github-actions/pr-comment.yml`](docs/examples/github-actions/pr-comment.yml).
 
 ## Adapters
 
@@ -211,6 +271,22 @@ handler = GroundGuardCallbackHandler(
 The callback handler intentionally requires an explicit `fact_mapper`; v1 does
 not guess which arbitrary JSON fields are evidence.
 
+## Runnable Examples
+
+```bash
+python examples/financial_report_demo/run.py
+python examples/decorator_demo/run.py
+python examples/langgraph_node/run.py
+python examples/openai_demo/run.py
+```
+
+For a live OpenAI SDK call:
+
+```bash
+export OPENAI_API_KEY=...
+python examples/openai_demo/run.py --live-openai
+```
+
 ## What GroundGuard Is Not
 
 - Not a tracing dashboard.
@@ -222,17 +298,20 @@ not guess which arbitrary JSON fields are evidence.
 ## Roadmap
 
 - **Milestone 1: Core library** - Ledger, claim extraction, matching, policy,
-  `grounded_generate`, and demo. Mostly implemented.
-- **Milestone 2: Framework adapters** - More LangChain/LangGraph examples,
-  native decorator helpers, and common agent framework recipes.
-- **Milestone 3: CI integration** - promptfoo/DeepEval-compatible assertions and
-  PR comments showing coverage regressions.
-- **Milestone 4: Visualization** - Local report diff and lightweight timelines.
+  `grounded_generate`, and the financial report demo. Implemented.
+- **Milestone 2: Framework adapters** - OpenAI wrapper, LangChain callback,
+  LangGraph-style node example, and native `@grounded(...)` decorator. Starter
+  coverage is implemented; more framework recipes are welcome.
+- **Milestone 3: CI integration** - Assertion-style JSON, composite GitHub
+  Action, and PR comment workflow example. Starter coverage is implemented.
+- **Milestone 4: Visualization** - Deferred until the core library and
+  distribution path are stable.
 
 ## Documentation
 
 - [Architecture](ARCHITECTURE.md)
 - [Financial report demo](examples/financial_report_demo/README.md)
+- [Launch kit](docs/launch/README.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing guide](CONTRIBUTING.md)
 

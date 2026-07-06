@@ -184,3 +184,67 @@ def test_grounded_generate_strips_unverified_claims_when_policy_requests_strip()
     assert "823.2 亿元 [fact:net_profit_2025]" in result.answer
     assert result.report.unverified_count == 0
     assert result.report.passed is True
+
+
+def test_grounded_decorator_returns_report_for_framework_free_functions():
+    from groundguard import Fact, GroundedResult, Ledger, Policy, grounded
+
+    ledger = Ledger(session_id="req_001", clock=lambda: 100.0)
+    ledger.register_fact(
+        Fact(
+            id="fact_revenue_2025",
+            source_tool="tool",
+            source_call_id="call_1",
+            key="revenue_2025",
+            value=Decimal("383000000000"),
+            unit="CNY",
+        )
+    )
+
+    @grounded(
+        ledger=ledger,
+        required_fact_keys=["revenue_2025"],
+        policy=Policy(),
+        return_report=True,
+    )
+    def summarize() -> str:
+        return "收入为 3830 亿元 [fact:revenue_2025]。"
+
+    result = summarize()
+
+    assert isinstance(result, GroundedResult)
+    assert result.answer == "收入为 3830 亿元 [fact:revenue_2025]。"
+    assert result.report.passed is True
+    assert result.report.verified_count == 1
+
+
+def test_grounded_decorator_blocks_failed_reports():
+    from groundguard import Fact, GroundingPolicyError, Ledger, Policy, grounded
+
+    ledger = Ledger(session_id="req_001", clock=lambda: 100.0)
+    ledger.register_fact(
+        Fact(
+            id="fact_revenue_2025",
+            source_tool="tool",
+            source_call_id="call_1",
+            key="revenue_2025",
+            value=Decimal("383000000000"),
+            unit="CNY",
+        )
+    )
+
+    @grounded(
+        ledger=ledger,
+        required_fact_keys=["revenue_2025"],
+        policy=Policy(),
+    )
+    def summarize() -> str:
+        return "No revenue data was available."
+
+    try:
+        summarize()
+    except GroundingPolicyError as exc:
+        assert exc.report.passed is False
+        assert exc.report.omitted_required_count == 1
+    else:
+        raise AssertionError("expected GroundingPolicyError")

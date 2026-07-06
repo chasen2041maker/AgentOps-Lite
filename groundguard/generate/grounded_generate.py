@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import wraps
 
 from groundguard.core.ledger import Ledger
 from groundguard.core.models import CoverageReport
@@ -33,19 +34,66 @@ def grounded_generate(
     """Call a user-provided LLM function with fact-key guidance."""
 
     active_policy = policy or Policy()
-    grounded_prompt = _build_grounded_prompt(prompt, required_fact_keys or [])
+    active_required_fact_keys = required_fact_keys or []
+    grounded_prompt = _build_grounded_prompt(prompt, active_required_fact_keys)
     answer = llm_call(grounded_prompt)
+    return _finalize_grounded_answer(
+        answer=answer,
+        ledger=ledger,
+        required_fact_keys=active_required_fact_keys,
+        policy=active_policy,
+        return_report=return_report,
+    )
+
+
+def grounded(
+    *,
+    ledger: Ledger,
+    required_fact_keys: list[str] | None = None,
+    policy: Policy | None = None,
+    return_report: bool = False,
+) -> Callable[[Callable[..., str]], Callable[..., str | GroundedResult]]:
+    """Decorate a framework-free function with GroundGuard verification."""
+
+    active_required_fact_keys = list(required_fact_keys or [])
+    active_policy = policy or Policy()
+
+    def decorator(func: Callable[..., str]) -> Callable[..., str | GroundedResult]:
+        @wraps(func)
+        def wrapper(*args: object, **kwargs: object) -> str | GroundedResult:
+            answer = func(*args, **kwargs)
+            return _finalize_grounded_answer(
+                answer=answer,
+                ledger=ledger,
+                required_fact_keys=active_required_fact_keys,
+                policy=active_policy,
+                return_report=return_report,
+            )
+
+        return wrapper
+
+    return decorator
+
+
+def _finalize_grounded_answer(
+    *,
+    answer: str,
+    ledger: Ledger,
+    required_fact_keys: list[str],
+    policy: Policy,
+    return_report: bool,
+) -> str | GroundedResult:
     report = ledger.coverage_report(
         answer,
         required_fact_keys=required_fact_keys,
-        policy=active_policy,
+        policy=policy,
     )
-    if active_policy.on_unverified == "strip" and report.unverified_count:
+    if policy.on_unverified == "strip" and report.unverified_count:
         answer = _strip_unverified_claims(answer, report)
         report = ledger.coverage_report(
             answer,
             required_fact_keys=required_fact_keys,
-            policy=active_policy,
+            policy=policy,
         )
     if _should_block(report):
         raise GroundingPolicyError(answer=answer, report=report)

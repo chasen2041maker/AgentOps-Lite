@@ -16,7 +16,7 @@
 - `groundguard-report` CLI 基础 JSON 报告。
 - 最小 OpenAI-compatible wrapper 与 LangChain-compatible callback handler。
 
-后续路线图仍包括更完整的框架接入示例、promptfoo/DeepEval 兼容断言、PR 注释和可视化 diff。
+后续路线图的剩余重点是更多框架配方、真实项目接入反馈和可视化 diff；基础适配、assertion schema 与 PR 注释示例已落地。
 
 声明抽取边界：当前版本只抽取带单位或量级词的数值声明，例如 `823.2 亿元`、`21.5%`、`10.25 亿美元`。没有单位的裸数字不会被识别，这是为了降低误报；如果要支持裸数字，需要先有更强的上下文约束。
 
@@ -108,10 +108,10 @@ groundguard/
   generate/
     __init__.py
     grounded_generate.py          # 包一层模型调用：生成 -> 抽取 -> 匹配 -> 按策略处理
-  adapters/                       # Milestone 2，v1 不实现
+  adapters/                       # Milestone 2 starter：OpenAI wrapper / LangChain callback
     langchain_callback.py
     openai_wrapper.py
-  cli/                            # Milestone 3，v1 不实现
+  cli/                            # Milestone 3 starter：report CLI / assertion schema
     report.py
     ci_gate.py
   examples/

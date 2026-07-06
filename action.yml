@@ -1,0 +1,93 @@
+name: GroundGuard Fact Gate
+description: Run GroundGuard coverage checks against a ledger JSONL file and final answer.
+author: GroundGuard contributors
+
+inputs:
+  ledger-jsonl:
+    description: Path to a GroundGuard Ledger JSONL file.
+    required: true
+  answer-file:
+    description: Path to the generated answer text file.
+    required: true
+  required-facts:
+    description: Comma-separated required fact keys.
+    required: false
+    default: ""
+  schema:
+    description: Output schema: groundguard or assertion.
+    required: false
+    default: assertion
+  fail-on-policy:
+    description: Fail the action when the GroundGuard policy does not pass.
+    required: false
+    default: "true"
+
+outputs:
+  report-json:
+    description: The generated GroundGuard JSON report.
+    value: ${{ steps.report.outputs.report-json }}
+  passed:
+    description: Whether the GroundGuard policy passed.
+    value: ${{ steps.report.outputs.passed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install GroundGuard
+      shell: bash
+      run: python -m pip install "${{ github.action_path }}"
+
+    - name: Run GroundGuard report
+      id: report
+      shell: bash
+      env:
+        LEDGER_JSONL: ${{ inputs.ledger-jsonl }}
+        ANSWER_FILE: ${{ inputs.answer-file }}
+        REQUIRED_FACTS: ${{ inputs.required-facts }}
+        SCHEMA: ${{ inputs.schema }}
+        FAIL_ON_POLICY: ${{ inputs.fail-on-policy }}
+      run: |
+        set -euo pipefail
+
+        required_args=()
+        if [[ -n "$REQUIRED_FACTS" ]]; then
+          IFS=',' read -ra facts <<< "$REQUIRED_FACTS"
+          for fact in "${facts[@]}"; do
+            trimmed="$(echo "$fact" | xargs)"
+            if [[ -n "$trimmed" ]]; then
+              required_args+=(--required-fact "$trimmed")
+            fi
+          done
+        fi
+
+        fail_args=()
+        if [[ "$FAIL_ON_POLICY" == "true" ]]; then
+          fail_args+=(--fail-on-policy)
+        fi
+
+        report_path="${RUNNER_TEMP}/groundguard-report.json"
+        set +e
+        python -m groundguard.cli.report \
+          --ledger-jsonl "$LEDGER_JSONL" \
+          --answer-file "$ANSWER_FILE" \
+          --schema "$SCHEMA" \
+          --output "$report_path" \
+          "${required_args[@]}" \
+          "${fail_args[@]}"
+        status=$?
+        set -e
+
+        passed="$(python -c 'import json, sys; data=json.load(open(sys.argv[1], encoding="utf-8")); print(str(data.get("pass", data.get("passed", False))).lower())' "$report_path")"
+        {
+          echo "passed=$passed"
+          echo "report-json<<EOF"
+          cat "$report_path"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+        exit "$status"

@@ -1,0 +1,62 @@
+name: GroundGuard PR Coverage Comment
+
+on:
+  pull_request:
+    paths:
+      - groundguard-ledger.jsonl
+      - answer.txt
+      - .github/workflows/groundguard-pr-comment.yml
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  groundguard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run GroundGuard
+        id: groundguard
+        uses: chasen2041maker/GroundGuard@v0.1.0
+        continue-on-error: true
+        with:
+          ledger-jsonl: groundguard-ledger.jsonl
+          answer-file: answer.txt
+          required-facts: net_profit_2025,revenue_2025
+          schema: assertion
+          fail-on-policy: "true"
+
+      - name: Comment coverage summary
+        uses: actions/github-script@v7
+        env:
+          GROUNDGUARD_REPORT: ${{ steps.groundguard.outputs.report-json }}
+        with:
+          script: |
+            const report = JSON.parse(process.env.GROUNDGUARD_REPORT);
+            const details = report.metadata?.groundguard ?? report;
+            const body = [
+              '## GroundGuard Coverage Report',
+              '',
+              `**Passed:** ${report.pass ?? report.passed}`,
+              `**Score:** ${report.score ?? 'n/a'}`,
+              `**Verified:** ${details.verified_count}`,
+              `**Unverified:** ${details.unverified_count}`,
+              `**Contradicted:** ${details.contradicted_count}`,
+              `**Omitted required:** ${details.omitted_required_count}`,
+              '',
+              report.reason ? `Reason: ${report.reason}` : ''
+            ].filter(Boolean).join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Fail when policy failed
+        if: steps.groundguard.outputs.passed != 'true'
+        run: exit 1

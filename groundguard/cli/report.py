@@ -23,7 +23,11 @@ def main(argv: list[str] | None = None) -> int:
         required_fact_keys=args.required_fact,
         policy=policy,
     )
-    payload = report_to_dict(report)
+    payload = (
+        report_to_assertion_dict(report)
+        if args.schema == "assertion"
+        else report_to_dict(report)
+    )
     output = json.dumps(payload, ensure_ascii=False, indent=2)
     if args.output:
         Path(args.output).write_text(f"{output}\n", encoding="utf-8")
@@ -36,6 +40,33 @@ def main(argv: list[str] | None = None) -> int:
 
 def report_to_dict(report: CoverageReport) -> dict[str, Any]:
     return _json_safe(asdict(report))
+
+
+def report_to_assertion_dict(report: CoverageReport) -> dict[str, Any]:
+    """Return a promptfoo/DeepEval-friendly assertion result payload."""
+
+    reason = report.policy_reason or "GroundGuard policy passed."
+    return {
+        "pass": report.passed,
+        "passed": report.passed,
+        "success": report.passed,
+        "score": _coverage_score(report),
+        "reason": reason,
+        "assertion": {
+            "type": "groundguard.fact_coverage",
+            "metric": "groundguard.fact_coverage",
+        },
+        "namedScores": {
+            "groundguard.verified_count": report.verified_count,
+            "groundguard.candidate_match_count": report.candidate_match_count,
+            "groundguard.unverified_count": report.unverified_count,
+            "groundguard.contradicted_count": report.contradicted_count,
+            "groundguard.omitted_required_count": report.omitted_required_count,
+        },
+        "metadata": {
+            "groundguard": report_to_dict(report),
+        },
+    }
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -61,6 +92,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional path to write JSON output. Defaults to stdout.",
     )
     parser.add_argument(
+        "--schema",
+        choices=["groundguard", "assertion"],
+        default="groundguard",
+        help=(
+            "JSON schema to emit. 'assertion' includes promptfoo/DeepEval-style "
+            "pass, score, reason, and metadata fields."
+        ),
+    )
+    parser.add_argument(
         "--allow-candidate-matches",
         action="store_true",
         help="Allow candidate numeric matches to cover required facts.",
@@ -71,6 +111,18 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Exit with status 1 when the evaluated policy does not pass.",
     )
     return parser
+
+
+def _coverage_score(report: CoverageReport) -> float:
+    total_claims = (
+        report.verified_count
+        + report.candidate_match_count
+        + report.unverified_count
+        + report.contradicted_count
+    )
+    if total_claims == 0:
+        return 1.0 if report.passed else 0.0
+    return report.verified_count / total_claims
 
 
 def _json_safe(value: Any) -> Any:

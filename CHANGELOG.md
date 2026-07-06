@@ -2,6 +2,22 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Framework-free `@grounded(...)` decorator for plain Python functions.
+- Assertion-style CLI schema with `pass`, `success`, `score`, `reason`,
+  `namedScores`, and `metadata.groundguard` fields.
+- Runnable decorator, LangGraph-style node, and native OpenAI SDK examples.
+- Composite `action.yml` for GitHub Actions fact gates.
+- PR coverage comment workflow example and launch kit.
+
+### Changed
+
+- README and Chinese README now lead with the before/after demo, comparison
+  table, CI usage, and current project boundaries.
+
 ## v0.1.0 - 2026-07-06
 
 GroundGuard v0.1.0 is the first runnable pre-alpha release: a local-first fact
