@@ -92,13 +92,22 @@ omitted_required: 0
 - Deterministic numeric claim extraction with `[fact:key]` markers, Chinese
   amounts, percentages, compact English magnitudes, and common English USD
   formats.
+- Extraction transparency: `CoverageReport.suspected_numbers`,
+  `uncovered_numbers`, and `extraction_coverage` show which numeric-looking
+  spans were seen but not covered by extractors.
+- Pluggable extractor registry through `register_extractor(...)` /
+  `unregister_extractor(...)`, so teams can add domain-specific claims without
+  forking the core extractor.
 - Matching statuses: `verified`, `candidate_match`, `unverified`,
   `contradicted`, and `ambiguous`.
 - Required fact coverage checks for "tool had data, model omitted it" failures.
 - `CoverageReport` and configurable `Policy` evaluation.
-- `grounded_generate()` with report return, blocking, and conservative stripping.
+- `grounded_generate()` with report return, blocking, conservative stripping,
+  optional tagged-claim repair, and one-shot reask.
 - `@grounded(...)` decorator for framework-free Python functions.
-- `groundguard-report` CLI with native and assertion-style JSON schemas.
+- `groundguard-report` CLI with native and assertion-style JSON schemas,
+  including per-claim `componentResults`.
+- Dedicated promptfoo and DeepEval adapter helpers.
 - OpenAI-compatible wrapper, LangChain-compatible callback, and LangGraph-style
   node examples.
 - A composite GitHub Action for CI fact gates.
@@ -109,7 +118,7 @@ GroundGuard is still pre-alpha and is not published to PyPI yet. Install the
 tagged release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.1.4"
+python -m pip install "git+https://github.com/chasen2041maker/GroundGuard.git@v0.2.0"
 ```
 
 For local development:
@@ -181,8 +190,8 @@ print(result.report.passed)
 | `Fact` | A verifiable value explicitly registered from a tool call. | The only source GroundGuard treats as evidence. |
 | `RequiredFact` | A fact key the current answer must cover. | Catches cases where the tool had data but the model ignored it. |
 | `OutputClaim` | A numeric claim extracted from the final answer. | Lets GroundGuard verify what the model actually wrote. |
-| `CoverageReport` | The final reconciliation report. | Shows verified, candidate, unverified, contradicted, and omitted facts. |
-| `Policy` | Pass/fail thresholds and handling behavior. | Lets you flag, strip, or block unsafe output. |
+| `CoverageReport` | The final reconciliation report. | Shows verified, candidate, unverified, contradicted, omitted facts, and uncovered numeric-looking spans. |
+| `Policy` | Pass/fail thresholds and handling behavior. | Lets you flag, strip, block, repair tagged contradictions, or reask once. |
 
 ## How It Works
 
@@ -195,7 +204,7 @@ flowchart LR
     E --> F
     F --> G["CoverageReport"]
     H["Required fact keys"] --> G
-    G --> I["Policy: flag / strip / block"]
+    G --> I["Policy: flag / strip / block / fix / reask"]
 ```
 
 GroundGuard v1 is deterministic by design: no hosted service, no database, no
@@ -205,11 +214,25 @@ Current claim extraction is intentionally narrow: it extracts numeric claims
 that include a unit or magnitude marker, such as `823.2 亿元`, `21.5%`,
 `10.25 亿美元`, `$3.83 billion`, `USD 10.25M`, `1.2M`,
 `3,830 million dollars`, or `21.5 percent`. Bare numbers without units are
-ignored to avoid false positives.
+not treated as verified claims to avoid false positives. They are still exposed
+in `CoverageReport.uncovered_numbers`, so users can see what the deterministic
+extractors did not cover.
 
 Registered numeric facts are normalized before matching. For example,
 `(Decimal("823.2"), "亿元")`, `(Decimal("8232000"), "万元")`, and
 `(Decimal("82320000000"), "CNY")` all compare as the same CNY value.
+
+Custom extractors can be registered when your domain needs additional claim
+types:
+
+```python
+from groundguard import OutputClaim, register_extractor
+
+
+@register_extractor("ticker_entity")
+def extract_tickers(text: str) -> list[OutputClaim]:
+    return []
+```
 
 ## Where It Fits
 
@@ -253,9 +276,10 @@ groundguard-report \
 ```
 
 The assertion schema includes `pass`, `success`, `score`, `reason`,
-`namedScores`, a top-level `claims` list with `text_span`, `start`, `end`,
-`status`, and `diff` for per-claim UI highlighting, and the full GroundGuard
-report under `metadata.groundguard`.
+`namedScores`, top-level `claims`, per-claim `componentResults`, and the full
+GroundGuard report under `metadata.groundguard`. Each claim exposes
+`text_span`, `start`, `end`, `status`, and `diff` for downstream UI
+highlighting.
 
 ## GitHub Action
 
@@ -263,7 +287,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.1.4
+  uses: chasen2041maker/GroundGuard@v0.2.0
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
@@ -306,6 +330,16 @@ handler = GroundGuardCallbackHandler(
 The callback handler intentionally requires an explicit `fact_mapper`; v1 does
 not guess which arbitrary JSON fields are evidence.
 
+promptfoo / DeepEval helper functions:
+
+```python
+from groundguard.integrations.deepeval import to_deepeval_result
+from groundguard.integrations.promptfoo import to_promptfoo_assertion
+
+promptfoo_payload = to_promptfoo_assertion(report)
+deepeval_payload = to_deepeval_result(report)
+```
+
 ## Runnable Examples
 
 ```bash
@@ -340,7 +374,8 @@ python examples/openai_demo/run.py --live-openai
   LangGraph-style node example, and native `@grounded(...)` decorator. Starter
   coverage is implemented; more framework recipes are welcome.
 - **Milestone 3: CI integration** - Assertion-style JSON, composite GitHub
-  Action, and PR comment workflow example. Starter coverage is implemented.
+  Action, PR comment workflow example, promptfoo/DeepEval helper adapters, and
+  per-claim component results. Implemented.
 - **Milestone 4: Visualization** - Deferred until the core library and
   distribution path are stable.
 

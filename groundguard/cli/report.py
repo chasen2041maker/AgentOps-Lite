@@ -63,8 +63,10 @@ def report_to_assertion_dict(report: CoverageReport) -> dict[str, Any]:
             "groundguard.contradicted_count": report.contradicted_count,
             "groundguard.ambiguous_count": report.ambiguous_count,
             "groundguard.omitted_required_count": report.omitted_required_count,
+            "groundguard.extraction_coverage": report.extraction_coverage,
         },
         "claims": _json_safe([asdict(claim) for claim in report.output_claims]),
+        "componentResults": _claim_component_results(report),
         "metadata": {
             "groundguard": report_to_dict(report),
         },
@@ -126,6 +128,18 @@ def _coverage_score(report: CoverageReport) -> float:
     if total_claims == 0:
         return 1.0 if report.passed else 0.0
     return report.verified_count / total_claims
+
+
+def _claim_component_results(report: CoverageReport) -> list[dict[str, Any]]:
+    return [
+        {
+            "pass": claim.status in {"verified", "candidate_match"},
+            "score": 1.0 if claim.status in {"verified", "candidate_match"} else 0.0,
+            "reason": claim.diff or claim.status,
+            "metadata": _json_safe(asdict(claim)),
+        }
+        for claim in report.output_claims
+    ]
 
 
 def _json_safe(value: Any) -> Any:

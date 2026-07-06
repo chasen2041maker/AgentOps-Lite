@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import wraps
 
 from groundguard.core.ledger import Ledger
-from groundguard.core.models import CoverageReport
+from groundguard.core.models import CoverageReport, Fact
 from groundguard.core.policy import Policy
 
 
@@ -36,6 +36,14 @@ def grounded_generate(
     active_required_fact_keys = required_fact_keys or []
     grounded_prompt = _build_grounded_prompt(prompt, active_required_fact_keys)
     answer = llm_call(grounded_prompt)
+    if active_policy.on_contradicted == "reask":
+        report = ledger.coverage_report(
+            answer,
+            required_fact_keys=active_required_fact_keys,
+            policy=active_policy,
+        )
+        if report.contradicted_count > active_policy.max_contradicted:
+            answer = llm_call(_build_reask_prompt(grounded_prompt, answer, report))
     return _finalize_grounded_answer(
         answer=answer,
         ledger=ledger,
@@ -94,6 +102,13 @@ def _finalize_grounded_answer(
             required_fact_keys=required_fact_keys,
             policy=policy,
         )
+    if policy.on_contradicted == "fix" and report.contradicted_count:
+        answer = _fix_contradicted_claims(answer, report, ledger.all_facts())
+        report = ledger.coverage_report(
+            answer,
+            required_fact_keys=required_fact_keys,
+            policy=policy,
+        )
     if _should_block(report):
         raise GroundingPolicyError(answer=answer, report=report)
     if return_report:
@@ -110,6 +125,54 @@ def _build_grounded_prompt(prompt: str, required_fact_keys: list[str]) -> str:
         "Use these fact markers when citing registered facts:\n"
         f"{fact_key_lines}"
     )
+
+
+def _build_reask_prompt(
+    grounded_prompt: str,
+    previous_answer: str,
+    report: CoverageReport,
+) -> str:
+    return (
+        f"{grounded_prompt}\n\n"
+        "GroundGuard blocked the previous answer because it did not match the "
+        "registered facts.\n"
+        f"Policy reason: {report.policy_reason}\n"
+        f"Previous answer:\n{previous_answer}\n\n"
+        "Rewrite the answer. Keep fact markers on any registered numeric facts "
+        "and make the numbers match the ledger."
+    )
+
+
+def _fix_contradicted_claims(
+    answer: str,
+    report: CoverageReport,
+    facts: list[Fact],
+) -> str:
+    fixed = answer
+    facts_by_id = {fact.id: fact for fact in facts}
+    repairable_claims = [
+        claim
+        for claim in report.output_claims
+        if claim.status == "contradicted"
+        and claim.start is not None
+        and claim.end is not None
+        and claim.matched_fact_id in facts_by_id
+    ]
+    for claim in sorted(repairable_claims, key=lambda item: item.start or 0, reverse=True):
+        fact = facts_by_id[claim.matched_fact_id or ""]
+        replacement = _fact_replacement_text(fact, claim.fact_key)
+        if replacement is None:
+            continue
+        fixed = f"{fixed[: claim.start]}{replacement}{fixed[claim.end :]}"
+    return fixed
+
+
+def _fact_replacement_text(fact: Fact, fact_key: str | None) -> str | None:
+    if fact.display_value is None:
+        return None
+    if fact_key is not None and "[fact:" not in fact.display_value:
+        return f"{fact.display_value} [fact:{fact_key}]"
+    return fact.display_value
 
 
 def _strip_unverified_claims(answer: str, report: CoverageReport) -> str:

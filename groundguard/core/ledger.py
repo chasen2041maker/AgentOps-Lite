@@ -21,6 +21,7 @@ class Ledger:
         self.session_id = session_id
         self._clock = clock or time.time
         self._facts: list[Fact] = []
+        self._facts_by_key: dict[str, list[Fact]] = {}
 
     def __enter__(self) -> Ledger:
         return self
@@ -32,10 +33,15 @@ class Ledger:
         recorded = fact
         if fact.recorded_at == 0.0:
             recorded = replace(fact, recorded_at=self._clock())
-        self._facts.append(recorded)
+        self._append_fact(recorded)
 
     def query(self, key: str) -> list[Fact]:
-        return [fact for fact in self.all_facts() if fact.key == key]
+        now = self._clock()
+        return [
+            fact
+            for fact in self._facts_by_key.get(key, [])
+            if not self._is_expired(fact, now)
+        ]
 
     def all_facts(self, exclude_expired: bool = True) -> list[Fact]:
         if not exclude_expired:
@@ -62,7 +68,7 @@ class Ledger:
         with input_path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 if line.strip():
-                    ledger._facts.append(_fact_from_jsonable(json.loads(line)))
+                    ledger._append_fact(_fact_from_jsonable(json.loads(line)))
         return ledger
 
     def coverage_report(
@@ -73,12 +79,17 @@ class Ledger:
     ) -> CoverageReport:
         from groundguard.core.coverage import build_coverage_report
         from groundguard.core.matcher import match_claims
-        from groundguard.core.output_claim_extractor import extract_output_claims
+        from groundguard.core.output_claim_extractor import (
+            extract_output_claims,
+            find_suspected_numbers,
+        )
         from groundguard.core.policy import evaluate_policy
 
         active_policy = policy or Policy()
         facts = self.all_facts()
-        output_claims = match_claims(extract_output_claims(answer), facts)
+        extracted_claims = extract_output_claims(answer)
+        output_claims = match_claims(extracted_claims, facts)
+        suspected_numbers = find_suspected_numbers(answer, extracted_claims)
         required_facts = [
             RequiredFact(key=key) for key in (required_fact_keys or [])
         ]
@@ -88,8 +99,13 @@ class Ledger:
             required_facts=required_facts,
             facts=facts,
             allow_candidate_matches=active_policy.allow_candidate_matches,
+            suspected_numbers=suspected_numbers,
         )
         return evaluate_policy(report, active_policy)
+
+    def _append_fact(self, fact: Fact) -> None:
+        self._facts.append(fact)
+        self._facts_by_key.setdefault(fact.key, []).append(fact)
 
     @staticmethod
     def _is_expired(fact: Fact, now: float) -> bool:

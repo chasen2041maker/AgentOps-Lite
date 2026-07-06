@@ -2,6 +2,36 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.2.0 - 2026-07-06
+
+### Added
+
+- Coverage transparency fields on `CoverageReport`: `suspected_numbers`,
+  `uncovered_numbers`, and `extraction_coverage`.
+- Pluggable output-claim extractor registry with `register_extractor(...)`,
+  `unregister_extractor(...)`, and `registered_extractors()`.
+- `Policy(on_contradicted="fix")` to repair tagged contradictions from ledger
+  `Fact.display_value`.
+- `Policy(on_contradicted="reask")` to ask the supplied `llm_call` for one
+  corrected rewrite when contradictions are detected.
+- promptfoo and DeepEval helper adapters under `groundguard.integrations`.
+- Per-claim `componentResults` in assertion JSON.
+- Ledger key index and matcher fact buckets for lower-cost lookups at larger
+  fact counts.
+
+### Changed
+
+- README and Chinese README now document uncovered-number transparency,
+  pluggable extractors, fix/reask policy behavior, and dedicated eval adapters.
+- Installation and GitHub Action examples now point to `v0.2.0`.
+
+### Verified
+
+```text
+python -m pytest
+68 passed
+```
+
 ## v0.1.4 - 2026-07-06
 
 ### Added

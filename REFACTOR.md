@@ -173,3 +173,17 @@
 别重写核心（匹配层是最对的地方），而是给它加上游的归一化+可插拔提取，
 和下游的 span 明细+集成适配器。保护三块蓝海（确定性、单位感知、漏写检测），
 把 `fix` 做成默认关闭的独家卖点。规模化的真正杠杆是账本索引与匹配分桶，不是正则。
+## v0.2.0 Implementation Status
+
+Implemented from this refactor plan:
+
+- Stage 2.5: uncovered-number transparency through `suspected_numbers`,
+  `uncovered_numbers`, and `extraction_coverage`.
+- Stage 3: pluggable extractor registry through `register_extractor(...)`.
+- Stage 4: `fix` and `reask` contradicted-claim policy actions.
+- Stage 5: promptfoo / DeepEval helper adapters and per-claim
+  `componentResults`.
+- Stage 6: Ledger key index and matcher unit buckets.
+
+Remaining follow-ups are now quality/distribution work, not blockers for the
+core refactor described in this file.

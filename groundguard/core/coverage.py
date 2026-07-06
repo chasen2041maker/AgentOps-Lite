@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from groundguard.core.models import CoverageReport, Fact, OutputClaim, RequiredFact
+from groundguard.core.models import CoverageReport, Fact, OutputClaim, RequiredFact, SuspectedNumber
 
 
 def build_coverage_report(
@@ -9,6 +9,7 @@ def build_coverage_report(
     required_facts: list[RequiredFact],
     facts: list[Fact] | None = None,
     allow_candidate_matches: bool = False,
+    suspected_numbers: list[SuspectedNumber] | None = None,
 ) -> CoverageReport:
     """Summarize matched output claims and required fact coverage."""
 
@@ -20,9 +21,16 @@ def build_coverage_report(
     omitted_required_facts = [
         required for required in required_facts if required.key not in covered_keys
     ]
+    active_suspected_numbers = suspected_numbers or []
+    uncovered_numbers = [
+        number for number in active_suspected_numbers if not number.covered
+    ]
     return CoverageReport(
         session_id=session_id,
         output_claims=output_claims,
+        suspected_numbers=active_suspected_numbers,
+        uncovered_numbers=uncovered_numbers,
+        extraction_coverage=_extraction_coverage(active_suspected_numbers),
         required_facts=required_facts,
         omitted_required_facts=omitted_required_facts,
         verified_count=_count_status(output_claims, "verified"),
@@ -55,3 +63,10 @@ def _covered_required_keys(
 
 def _count_status(output_claims: list[OutputClaim], status: str) -> int:
     return sum(1 for claim in output_claims if claim.status == status)
+
+
+def _extraction_coverage(suspected_numbers: list[SuspectedNumber]) -> float:
+    if not suspected_numbers:
+        return 1.0
+    covered_count = sum(1 for number in suspected_numbers if number.covered)
+    return covered_count / len(suspected_numbers)

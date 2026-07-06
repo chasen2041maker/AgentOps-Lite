@@ -14,14 +14,14 @@ class Policy:
     max_omitted_required: int = 0
     allow_candidate_matches: bool = False
     on_unverified: Literal["flag", "strip", "block"] = "flag"
-    on_contradicted: Literal["flag", "block"] = "block"
+    on_contradicted: Literal["flag", "block", "fix", "reask"] = "block"
     on_omitted_required: Literal["flag", "block"] = "block"
 
 
 def evaluate_policy(report: CoverageReport, policy: Policy) -> CoverageReport:
     reasons: list[str] = []
     if (
-        policy.on_contradicted == "block"
+        policy.on_contradicted in {"block", "fix", "reask"}
         and report.contradicted_count > policy.max_contradicted
     ):
         reasons.append(

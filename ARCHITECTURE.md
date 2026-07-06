@@ -293,3 +293,13 @@ examples/financial_report_demo/
 - v1 不做非数值类声明的自动抽取（比较级、定性判断等留到 v2，且需要明确协议接口后再引入 LLM 依赖）。
 - v1 不把无显式 fact key 的数值近邻匹配默认视为已核实，只作为 candidate match。
 - 任何新增功能提案，先对照 [PLAN.md](PLAN.md) 第 4 节的"明确不做的事"清单检查是否重复造轮子。
+# v0.2.0 Architecture Addendum
+
+GroundGuard now includes:
+
+- `CoverageReport.suspected_numbers`, `uncovered_numbers`, and
+  `extraction_coverage` for extraction transparency.
+- A pluggable extractor registry via `register_extractor(...)`.
+- `Policy.on_contradicted` actions: `flag`, `block`, `fix`, and `reask`.
+- promptfoo / DeepEval helper adapters plus assertion `componentResults`.
+- Ledger key indexing and matcher unit buckets.

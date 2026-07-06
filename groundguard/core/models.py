@@ -64,11 +64,25 @@ class OutputClaim:
 
 
 @dataclass
+class SuspectedNumber:
+    """A numeric-looking span seen in output, whether or not an extractor covered it."""
+
+    text_span: str
+    start: int
+    end: int
+    covered: bool = False
+    reason: str = "not_extracted"
+
+
+@dataclass
 class CoverageReport:
     """A fact coverage report for a single generated answer."""
 
     session_id: str
     output_claims: list[OutputClaim] = field(default_factory=list)
+    suspected_numbers: list[SuspectedNumber] = field(default_factory=list)
+    uncovered_numbers: list[SuspectedNumber] = field(default_factory=list)
+    extraction_coverage: float = 1.0
     required_facts: list[RequiredFact] = field(default_factory=list)
     omitted_required_facts: list[RequiredFact] = field(default_factory=list)
     verified_count: int = 0

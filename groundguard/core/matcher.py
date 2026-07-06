@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from dataclasses import replace
 from decimal import Decimal
 
@@ -14,21 +15,52 @@ def match_claims(
 ) -> list[OutputClaim]:
     """Match output claims against registered facts using deterministic rules."""
 
+    fact_index = _build_fact_match_index(facts)
     matched_claims: list[OutputClaim] = []
     for claim in claims:
         if claim.fact_key is not None:
-            matched_claims.append(_match_explicit_key(claim, facts, tolerance))
+            matched_claims.append(_match_explicit_key(claim, fact_index, tolerance))
         else:
-            matched_claims.append(_match_numeric_candidate(claim, facts, tolerance))
+            matched_claims.append(_match_numeric_candidate(claim, fact_index, tolerance))
     return matched_claims
+
+
+@dataclass(frozen=True)
+class _NormalizedFact:
+    fact: Fact
+    value: Decimal | str
+    unit: str | None
+
+
+@dataclass(frozen=True)
+class _FactMatchIndex:
+    by_key: dict[str, Fact]
+    numeric_by_unit: dict[str | None, list[_NormalizedFact]]
+
+
+def _build_fact_match_index(facts: list[Fact]) -> _FactMatchIndex:
+    by_key: dict[str, Fact] = {}
+    numeric_by_unit: dict[str | None, list[_NormalizedFact]] = {}
+    for fact in facts:
+        by_key.setdefault(fact.key, fact)
+        normalized_value, normalized_unit = _normalize_fact_value(fact)
+        if isinstance(normalized_value, Decimal):
+            numeric_by_unit.setdefault(normalized_unit, []).append(
+                _NormalizedFact(
+                    fact=fact,
+                    value=normalized_value,
+                    unit=normalized_unit,
+                )
+            )
+    return _FactMatchIndex(by_key=by_key, numeric_by_unit=numeric_by_unit)
 
 
 def _match_explicit_key(
     claim: OutputClaim,
-    facts: list[Fact],
+    fact_index: _FactMatchIndex,
     tolerance: float,
 ) -> OutputClaim:
-    fact = next((candidate for candidate in facts if candidate.key == claim.fact_key), None)
+    fact = fact_index.by_key.get(claim.fact_key or "")
     if fact is None:
         return claim
     normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
@@ -52,26 +84,20 @@ def _match_explicit_key(
 
 def _match_numeric_candidate(
     claim: OutputClaim,
-    facts: list[Fact],
+    fact_index: _FactMatchIndex,
     tolerance: float,
 ) -> OutputClaim:
     normalized_claim_value, normalized_claim_unit = _normalize_claim_value(claim)
     if not isinstance(normalized_claim_value, Decimal):
         return claim
-    candidates = [
-        (fact, normalized_value)
-        for fact in facts
-        for normalized_value, normalized_unit in [_normalize_fact_value(fact)]
-        if normalized_unit == normalized_claim_unit
-        and isinstance(normalized_value, Decimal)
-    ]
+    candidates = fact_index.numeric_by_unit.get(normalized_claim_unit, [])
     nearby = [
-        (fact, value)
-        for fact, value in candidates
-        if _values_match(normalized_claim_value, value, tolerance)
+        normalized_fact
+        for normalized_fact in candidates
+        if _values_match(normalized_claim_value, normalized_fact.value, tolerance)
     ]
     if len(nearby) > 1:
-        candidate_ids = ",".join(fact.id for fact, _ in nearby)
+        candidate_ids = ",".join(item.fact.id for item in nearby)
         return replace(
             claim,
             status="ambiguous",
@@ -79,7 +105,7 @@ def _match_numeric_candidate(
             diff=f"ambiguous_candidates={candidate_ids}",
         )
     if len(nearby) == 1:
-        nearest = nearby[0][0]
+        nearest = nearby[0].fact
         return replace(
             claim,
             status="candidate_match",

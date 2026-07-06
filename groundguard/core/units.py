@@ -95,3 +95,93 @@ def normalized_unit(unit: str | None) -> str | None:
 
 def normalized_currency_prefix(currency_prefix: str | None) -> str | None:
     return normalized_unit(currency_prefix)
+
+
+# v0.2 normalized unit table with ASCII source plus Unicode escapes. These
+# definitions intentionally shadow the earlier table so source encoding quirks
+# cannot change matcher behavior.
+def unit_multiplier_and_name(unit: str | None) -> tuple[Decimal, str | None]:
+    if unit is None:
+        return Decimal("1"), None
+    normalized = unit.strip().lower().replace(" ", "_").replace("-", "_")
+
+    exact_units = {
+        "cny": (Decimal("1"), "CNY"),
+        "rmb": (Decimal("1"), "CNY"),
+        "\u4eba\u6c11\u5e01": (Decimal("1"), "CNY"),
+        "\u5143": (Decimal("1"), "CNY"),
+        "usd": (Decimal("1"), "USD"),
+        "us$": (Decimal("1"), "USD"),
+        "$": (Decimal("1"), "USD"),
+        "\u7f8e\u5143": (Decimal("1"), "USD"),
+        "dollar": (Decimal("1"), "USD"),
+        "dollars": (Decimal("1"), "USD"),
+        "us_dollar": (Decimal("1"), "USD"),
+        "us_dollars": (Decimal("1"), "USD"),
+        "%": (Decimal("1"), "%"),
+        "percent": (Decimal("1"), "%"),
+        "percentage_point": (Decimal("1"), "%"),
+        "percentage_points": (Decimal("1"), "%"),
+        "\u80a1": (Decimal("1"), "\u80a1"),
+        "shares": (Decimal("1"), "\u80a1"),
+        "\u500d": (Decimal("1"), "\u500d"),
+        "x": (Decimal("1"), "\u500d"),
+        "times": (Decimal("1"), "\u500d"),
+    }
+    if normalized in exact_units:
+        return exact_units[normalized]
+
+    scaled_units = {
+        "\u4ebf\u5143": (Decimal("100000000"), "CNY"),
+        "\u4e07\u4ebf\u5143": (Decimal("1000000000000"), "CNY"),
+        "\u4e07\u5143": (Decimal("10000"), "CNY"),
+        "\u5343\u5143": (Decimal("1000"), "CNY"),
+        "cny_b": (Decimal("1000000000"), "CNY"),
+        "cny_bn": (Decimal("1000000000"), "CNY"),
+        "cny_m": (Decimal("1000000"), "CNY"),
+        "cny_mn": (Decimal("1000000"), "CNY"),
+        "cny_k": (Decimal("1000"), "CNY"),
+        "cny_100m": (Decimal("100000000"), "CNY"),
+        "cny_10k": (Decimal("10000"), "CNY"),
+        "\u4ebf\u7f8e\u5143": (Decimal("100000000"), "USD"),
+        "\u4e07\u7f8e\u5143": (Decimal("10000"), "USD"),
+        "\u5343\u7f8e\u5143": (Decimal("1000"), "USD"),
+        "usd_b": (Decimal("1000000000"), "USD"),
+        "usd_bn": (Decimal("1000000000"), "USD"),
+        "usd_m": (Decimal("1000000"), "USD"),
+        "usd_mn": (Decimal("1000000"), "USD"),
+        "usd_k": (Decimal("1000"), "USD"),
+        "usd_100m": (Decimal("100000000"), "USD"),
+        "usd_10k": (Decimal("10000"), "USD"),
+    }
+    if normalized in scaled_units:
+        return scaled_units[normalized]
+
+    return Decimal("1"), unit
+
+
+def magnitude_multiplier(magnitude: str | None) -> Decimal:
+    if magnitude is None:
+        return Decimal("1")
+    normalized = magnitude.lower()
+    if normalized == "\u4ebf":
+        return Decimal("100000000")
+    if normalized == "\u4e07":
+        return Decimal("10000")
+    if normalized == "\u5343":
+        return Decimal("1000")
+    if normalized in {"billion", "bn", "b"}:
+        return Decimal("1000000000")
+    if normalized in {"million", "mn", "m"}:
+        return Decimal("1000000")
+    if normalized in {"thousand", "k"}:
+        return Decimal("1000")
+    return Decimal("1")
+
+
+def normalized_unit(unit: str | None) -> str | None:
+    return unit_multiplier_and_name(unit)[1]
+
+
+def normalized_currency_prefix(currency_prefix: str | None) -> str | None:
+    return normalized_unit(currency_prefix)
