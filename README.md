@@ -10,11 +10,13 @@ facts explicitly registered from tool calls, and required facts returned by
 tools must not be silently omitted.
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 
-[Docs](docs/index.md) | [Examples](examples) | [Benchmark](benchmarks) |
+[PyPI](https://pypi.org/project/groundguard-ai/) | [Docs](docs/index.md) |
+[Examples](examples) | [Benchmark](benchmarks) |
 [Releases](https://github.com/chasen2041maker/GroundGuard/releases) |
 [Roadmap](PLAN.md) | [Contributing](CONTRIBUTING.md)
 
@@ -71,7 +73,7 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`.
+`groundguard`. Current published version: `0.2.3`.
 
 ## 10-Second Demo
 

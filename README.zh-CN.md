@@ -7,11 +7,12 @@
 GroundGuard 会在 Agent 最终输出放行前做确定性核对：关键数字必须能追溯到工具调用中显式登记的事实；工具已经返回、且本轮必须覆盖的事实，也不能被模型静默遗漏。
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 
-[English](README.md) | 简体中文
+[PyPI](https://pypi.org/project/groundguard-ai/) | [English](README.md) | 简体中文
 
 <img src="assets/demo.gif" alt="GroundGuard demo：修正前遗漏 required facts 被红色标出，修正后 verified 绿色通过" width="880">
 
@@ -88,7 +89,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`：
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。当前发布版本：`0.2.3`。
 
 ```bash
 python -m pip install groundguard-ai
