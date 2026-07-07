@@ -1,5 +1,26 @@
 # CLI and Config
 
+## Initialize A Starter
+
+Use `groundguard-init` to create a minimal config and sample files:
+
+```bash
+groundguard-init --template github-action
+```
+
+Available templates:
+
+```bash
+groundguard-init --template github-action
+groundguard-init --template openai
+groundguard-init --template promptfoo
+groundguard-init --template langgraph
+```
+
+The command writes `groundguard.yml`, `groundguard-ledger.jsonl`, `answer.txt`,
+and a small template-specific starter file. Existing files are not overwritten
+unless you pass `--force`.
+
 ## Generate a Report
 
 ```bash

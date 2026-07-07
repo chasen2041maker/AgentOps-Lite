@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chasen2041maker/GroundGuard/schemas/groundguard.config.v1.schema.json",
+  "title": "GroundGuard Config v1",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "required_facts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    },
+    "extractors": {
+      "$ref": "#/$defs/extractors"
+    },
+    "units": {
+      "$ref": "#/$defs/units"
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "allow_candidate_matches": {
+          "type": "boolean"
+        },
+        "max_unverified_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_contradicted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_ambiguous": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_omitted_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_unverified": {
+          "enum": [
+            "flag",
+            "strip",
+            "block"
+          ]
+        },
+        "on_contradicted": {
+          "enum": [
+            "flag",
+            "strip",
+            "block",
+            "fix",
+            "reask"
+          ]
+        },
+        "on_omitted_required": {
+          "enum": [
+            "flag",
+            "block"
+          ]
+        }
+      }
+    },
+    "extractors": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "packs": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "finance",
+              "saas",
+              "ecommerce",
+              "ops"
+            ]
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "tolerance": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "schema": {
+          "enum": [
+            "groundguard",
+            "assertion"
+          ]
+        },
+        "format": {
+          "enum": [
+            "json",
+            "markdown",
+            "html",
+            "github"
+          ]
+        },
+        "fail_on_policy": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

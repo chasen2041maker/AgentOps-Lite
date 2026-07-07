@@ -89,6 +89,7 @@ match the facts your tools actually returned.
 
 ```bash
 python -m pip install groundguard-ai
+groundguard-init --template github-action
 groundguard-demo
 groundguard-benchmark
 ```
@@ -144,6 +145,8 @@ omitted_required: 0
   optional tagged-claim repair, and one-shot reask.
 - `@grounded(...)` decorator for framework-free Python functions.
 - `FactGate` high-level runtime API for config-driven record/check flows.
+- `groundguard-init` starter templates for GitHub Actions, OpenAI, promptfoo,
+  and LangGraph.
 - `groundguard-report` CLI with native and assertion-style JSON schemas,
   including per-claim `componentResults`, Markdown, HTML, and GitHub comment
   renderers.
@@ -438,6 +441,11 @@ GroundGuard treats `Fact`, `OutputClaim`, `CoverageReport`, `Policy`,
 includes `schema_version`. GroundGuard will not remove or rename fields within a major version; new fields may be added with defaults so existing integrations
 continue to read older payloads.
 
+Published schema files:
+
+- [`schemas/groundguard.report.v1.schema.json`](schemas/groundguard.report.v1.schema.json)
+- [`schemas/groundguard.config.v1.schema.json`](schemas/groundguard.config.v1.schema.json)
+
 ## GitHub Action
 
 Use the composite action in another repository:
@@ -556,7 +564,11 @@ python examples/openai_demo/run.py --live-openai
 - [Docs home](docs/index.md)
 - [Getting started](docs/getting-started.md)
 - [CLI and config](docs/cli.md)
+- [Recipes](docs/recipes.md)
+- [Comparisons](docs/comparisons.md)
+- [Production guide](docs/production.md)
 - [Benchmark](docs/benchmark.md)
+- [Good first issues](docs/good-first-issues.md)
 - [Architecture](ARCHITECTURE.md)
 - [Financial report demo](examples/financial_report_demo/README.md)
 - [Brand assets](assets/brand/README.md)

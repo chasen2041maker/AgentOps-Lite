@@ -1,0 +1,34 @@
+name: Integration request
+description: Request a framework, eval, tracing, or CI integration recipe.
+title: "[Integration]: "
+labels: ["enhancement", "integration"]
+body:
+  - type: input
+    id: framework
+    attributes:
+      label: Framework or tool
+      placeholder: "Anthropic, LlamaIndex, PydanticAI, CrewAI, AutoGen, MCP..."
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow
+      description: Where would GroundGuard record tool facts and check the final answer?
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: desired_api
+    attributes:
+      label: Desired API or example
+      description: Paste the smallest code example you wish existed.
+      render: markdown
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: GroundGuard boundaries
+      options:
+        - label: This can stay local-first.
+        - label: This does not require a database.
+        - label: This does not require a second LLM judge.

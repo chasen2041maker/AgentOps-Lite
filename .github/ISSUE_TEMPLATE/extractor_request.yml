@@ -1,0 +1,38 @@
+name: Extractor request
+description: Request support for a new deterministic claim extraction pattern.
+title: "[Extractor]: "
+labels: ["enhancement", "extractor"]
+body:
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example output text
+      description: Include 3-5 synthetic answer snippets that should be extracted.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected claims
+      description: Show expected value, unit, span, and fact key if relevant.
+      render: markdown
+    validations:
+      required: true
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain pack
+      options:
+        - finance
+        - saas
+        - ecommerce
+        - ops
+        - generic
+        - new pack
+  - type: textarea
+    id: false_positive_risk
+    attributes:
+      label: False positive risk
+      description: Which similar text should not be extracted?
+      render: markdown

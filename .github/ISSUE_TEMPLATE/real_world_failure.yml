@@ -1,0 +1,39 @@
+name: Real-world failure example
+description: Share a synthetic or anonymized agent fact failure GroundGuard should catch.
+title: "[Failure example]: "
+labels: ["example", "research"]
+body:
+  - type: textarea
+    id: tool_facts
+    attributes:
+      label: Tool facts
+      description: Include synthetic or anonymized facts returned by tools.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: final_answer
+    attributes:
+      label: Final answer
+      description: Include the generated answer that rewrote, omitted, or invented facts.
+      render: markdown
+    validations:
+      required: true
+  - type: dropdown
+    id: failure_type
+    attributes:
+      label: Failure type
+      options:
+        - contradicted
+        - omitted_required
+        - unverified
+        - ambiguous
+        - uncovered_bare_number
+        - not sure
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy note
+      description: Confirm that credentials, customer data, proprietary prompts, and private metrics have been removed.
+    validations:
+      required: true

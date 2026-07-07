@@ -2,6 +2,18 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added `groundguard-init` starter templates for GitHub Actions, OpenAI,
+  promptfoo, and LangGraph.
+- Added public JSON Schema files for `groundguard.report.v1` and
+  `groundguard.config.v1`.
+- Added comparison, recipe, production, and good-first-issue documentation.
+- Added issue templates for extractor requests, integration requests, and
+  real-world failure examples.
+
 ## v0.3.0 - 2026-07-07
 
 ### Added

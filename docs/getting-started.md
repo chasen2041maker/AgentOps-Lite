@@ -19,6 +19,12 @@ python -m pytest
 
 ## Run the Demo
 
+Create starter files for a CI fact gate:
+
+```bash
+groundguard-init --template github-action
+```
+
 ```bash
 groundguard-demo
 ```

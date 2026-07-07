@@ -1,4 +1,6 @@
 from decimal import Decimal
+from importlib import resources
+import json
 from pathlib import Path
 
 
@@ -59,3 +61,45 @@ def test_readme_has_text_brand_before_remote_logo_dependency():
     image_index = readme.index("groundguard-logo-wordmark.png")
 
     assert heading_index < image_index
+
+
+def test_public_json_schema_files_exist_and_expose_core_contracts():
+    report_schema = json.loads(
+        Path("schemas/groundguard.report.v1.schema.json").read_text(encoding="utf-8")
+    )
+    config_schema = json.loads(
+        Path("schemas/groundguard.config.v1.schema.json").read_text(encoding="utf-8")
+    )
+
+    assert report_schema["$id"].endswith("groundguard.report.v1.schema.json")
+    assert report_schema["properties"]["schema_version"]["const"] == (
+        "groundguard.report.v1"
+    )
+    assert {"schema_version", "session_id", "summary", "claims"} <= set(
+        report_schema["required"]
+    )
+    claim_properties = report_schema["$defs"]["output_claim"]["properties"]
+    assert {"status", "text_span", "matched_fact_key", "ledger_value"} <= set(
+        claim_properties
+    )
+
+    assert config_schema["$id"].endswith("groundguard.config.v1.schema.json")
+    assert {"required_facts", "policy", "extractors", "units", "report"} <= set(
+        config_schema["properties"]
+    )
+    assert "on_contradicted" in config_schema["$defs"]["policy"]["properties"]
+
+
+def test_packaged_json_schema_files_match_public_files():
+    for filename in (
+        "groundguard.report.v1.schema.json",
+        "groundguard.config.v1.schema.json",
+    ):
+        public_schema = Path("schemas", filename).read_text(encoding="utf-8")
+        packaged_schema = (
+            resources.files("groundguard.schemas")
+            .joinpath(filename)
+            .read_text(encoding="utf-8")
+        )
+
+        assert json.loads(packaged_schema) == json.loads(public_schema)

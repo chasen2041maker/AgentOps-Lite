@@ -34,6 +34,7 @@ Changelog = "https://github.com/chasen2041maker/GroundGuard/blob/main/CHANGELOG.
 [project.scripts]
 groundguard-benchmark = "benchmarks.fact_gate_benchmark:main"
 groundguard-demo = "groundguard.cli.demo:cli"
+groundguard-init = "groundguard.cli.init:cli"
 groundguard-report = "groundguard.cli.report:cli"
 groundguard-server = "groundguard.server:cli"
 
@@ -58,6 +59,7 @@ include = ["groundguard*", "benchmarks*"]
 
 [tool.setuptools.package-data]
 groundguard = ["py.typed"]
+"groundguard.schemas" = ["*.json"]
 benchmarks = ["*.jsonl"]
 
 [tool.pytest.ini_options]

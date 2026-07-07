@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chasen2041maker/GroundGuard/schemas/groundguard.report.v1.schema.json",
+  "title": "GroundGuard Report v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "session_id",
+    "summary",
+    "claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "groundguard.report.v1"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/output_claim"
+      }
+    },
+    "required_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/required_fact"
+      }
+    },
+    "omitted_required_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/required_fact"
+      }
+    },
+    "suspected_numbers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/suspected_number"
+      }
+    },
+    "uncovered_numbers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/suspected_number"
+      }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "passed",
+        "verified_count",
+        "unverified_count",
+        "contradicted_count",
+        "omitted_required_count"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "policy_reason": {
+          "type": "string"
+        },
+        "verified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_match_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unverified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contradicted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ambiguous_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extraction_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "output_claim": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "text_span",
+        "claim_type",
+        "normalized_value",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text_span": {
+          "type": "string"
+        },
+        "claim_type": {
+          "enum": [
+            "numeric",
+            "entity",
+            "comparison",
+            "assertion"
+          ]
+        },
+        "normalized_value": {},
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fact_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "matched_fact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "matched_fact_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ledger_value": {},
+        "answer_value": {},
+        "status": {
+          "enum": [
+            "verified",
+            "candidate_match",
+            "unverified",
+            "contradicted",
+            "ambiguous"
+          ]
+        },
+        "diff": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "schema_version": {
+          "type": "integer"
+        }
+      }
+    },
+    "required_fact": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "key"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "required",
+            "optional"
+          ]
+        }
+      }
+    },
+    "suspected_number": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "text_span",
+        "start",
+        "end",
+        "covered"
+      ],
+      "properties": {
+        "text_span": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "end": {
+          "type": "integer"
+        },
+        "covered": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

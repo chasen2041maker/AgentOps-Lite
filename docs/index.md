@@ -28,6 +28,7 @@ print(report.output_claims[0].status)  # contradicted
 
 ```bash
 python -m pip install groundguard-ai
+groundguard-init --template github-action
 groundguard-demo
 groundguard-benchmark
 ```
