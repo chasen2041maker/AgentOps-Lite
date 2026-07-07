@@ -2,19 +2,37 @@
 
 <h1>GroundGuard</h1>
 
-<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
+<img src="https://raw.githubusercontent.com/chasen2041maker/GroundGuard/main/assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
 
-**给工具调用型 AI Agent 加一层本地优先的事实门禁。**
+**给 AI Agent 最终答案做断言：确定性、本地优先、不用 LLM 评委。**
 
-GroundGuard 会在 Agent 最终输出放行前做确定性核对：关键数字必须能追溯到工具调用中显式登记的事实；工具已经返回、且本轮必须覆盖的事实，也不能被模型静默遗漏。
+GroundGuard 防止工具调用型 Agent 无视自己已经查到的事实。关键数字必须能追溯到本轮工具调用中登记的事实；工具已经返回、且本轮必须覆盖的事实，也不能被模型静默遗漏。
+
+适配 OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
+[![Discussions](https://img.shields.io/github/discussions/chasen2041maker/GroundGuard)](https://github.com/chasen2041maker/GroundGuard/discussions)
 
-[PyPI](https://pypi.org/project/groundguard-ai/) | [English](README.md) | 简体中文
+[PyPI](https://pypi.org/project/groundguard-ai/) | [English](README.md) | [Discussions](https://github.com/chasen2041maker/GroundGuard/discussions) | 简体中文
+
+</div>
+
+```python
+from groundguard import FactGate
+
+gate = FactGate()
+gate.record_tool_result("q3_revenue", "5.2", "billion_usd")  # 来自一次工具调用
+report = gate.check("Q3 revenue came in at $4.8 billion [fact:q3_revenue].", required=["q3_revenue"])
+print(report.output_claims[0].status)  # contradicted
+```
+
+答案写的是 4.8B，账本里登记的是 5.2B，所以这条声明会在放行前被拦住。
+
+<div align="center">
 
 <img src="assets/demo.gif" alt="GroundGuard demo：修正前遗漏 required facts 被红色标出，修正后 verified 绿色通过" width="880">
 
@@ -91,7 +109,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.2.4`；main 分支正在准备 `0.3.0`，包含新的 `FactGate` runtime API 和报告渲染器。
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.3.0`。
 
 ```bash
 python -m pip install groundguard-ai
@@ -275,7 +293,7 @@ report:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.4
+  uses: chasen2041maker/GroundGuard@v0.3.0
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
@@ -361,12 +379,9 @@ python examples/openai_demo/run.py --live-openai
 
 ## GroundGuard 不是什么
 
-- 不是 tracing dashboard。
-- 不是 LLM-as-judge 评测器。
-- 不是通用幻觉检测器。
-- 不是托管式可观测性平台。
-- 不是 token 级受控解码。
-- 不适合核对没有单位、量级或 fact marker 的裸数字。
+- 不是 tracing 或可观测性平台；需要时把报告导出到 Langfuse、Phoenix 或 OpenTelemetry。
+- 不是 LLM-as-judge 或通用幻觉检测器；它做的是确定性的账本与答案断言核对。
+- 不是数据库或托管服务；它本地运行，且关键数字需要带单位、量级或 fact marker 才会被核对。
 
 ## 路线图
 

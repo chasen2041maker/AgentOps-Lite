@@ -2,27 +2,46 @@
 
 <h1>GroundGuard</h1>
 
-<img src="assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
+<img src="https://raw.githubusercontent.com/chasen2041maker/GroundGuard/main/assets/brand/groundguard-logo-wordmark.png" alt="GroundGuard logo" width="420">
 
-**Stop tool-using agents from ignoring the facts they already fetched.**
+**Assertions for AI agent answers - deterministic, local, no LLM judge.**
 
-GroundGuard is a deterministic, local-first fact gate for AI agents. It checks
-the final answer before release: important numeric claims must trace back to
-facts explicitly registered from tool calls, and required facts returned by
-tools must not be silently omitted.
+Stop tool-using agents from ignoring the facts they already fetched. Important
+numeric claims must trace back to facts recorded from this run, and required
+tool facts cannot disappear silently.
+
+Works with OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
+[![Discussions](https://img.shields.io/github/discussions/chasen2041maker/GroundGuard)](https://github.com/chasen2041maker/GroundGuard/discussions)
 
 [PyPI](https://pypi.org/project/groundguard-ai/) | [Docs](docs/index.md) |
 [Examples](examples) | [Benchmark](benchmarks) |
 [Releases](https://github.com/chasen2041maker/GroundGuard/releases) |
-[Roadmap](PLAN.md) | [Contributing](CONTRIBUTING.md)
+[Roadmap](PLAN.md) | [Discussions](https://github.com/chasen2041maker/GroundGuard/discussions) |
+[Contributing](CONTRIBUTING.md)
 
 English | [Chinese README](README.zh-CN.md)
+
+</div>
+
+```python
+from groundguard import FactGate
+
+gate = FactGate()
+gate.record_tool_result("q3_revenue", "5.2", "billion_usd")  # from a tool call
+report = gate.check("Q3 revenue came in at $4.8 billion [fact:q3_revenue].", required=["q3_revenue"])
+print(report.output_claims[0].status)  # contradicted
+```
+
+The answer says 4.8B; the ledger says 5.2B, so the claim is stopped before
+release.
+
+<div align="center">
 
 <img src="assets/demo.gif" alt="GroundGuard demo: omitted required facts blocked in red, corrected answer verified in green" width="880">
 
@@ -75,9 +94,7 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Latest PyPI release: `0.2.4`.
-The main branch is preparing `0.3.0` with the new `FactGate` runtime API and
-report renderers.
+`groundguard`. Latest PyPI release: `0.3.0`.
 
 ## 10-Second Demo
 
@@ -427,7 +444,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.2.4
+  uses: chasen2041maker/GroundGuard@v0.3.0
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
@@ -514,13 +531,12 @@ python examples/openai_demo/run.py --live-openai
 
 ## What GroundGuard Is Not
 
-- Not a tracing dashboard.
-- Not an LLM-as-judge evaluator.
-- Not a general hallucination detector.
-- Not a hosted observability platform.
-- Not token-level constrained decoding.
-- Not useful for important numbers that are emitted as bare numbers with no
-  unit, magnitude, or fact marker.
+- Not a tracing or observability platform; export reports to Langfuse, Phoenix,
+  or OpenTelemetry instead.
+- Not an LLM-as-judge or general hallucination detector; it checks deterministic
+  ledger-vs-answer assertions.
+- Not a database or hosted service; it runs locally, and important numbers need
+  a unit, magnitude, or fact marker to be checked.
 
 ## Roadmap
 
