@@ -21,7 +21,7 @@ from groundguard.core.output_claim_extractor import (
     registered_extractors,
     unregister_extractor,
 )
-from groundguard.core.policy import Policy, evaluate_policy
+from groundguard.core.policy import Policy, evaluate_policy, policy_action
 from groundguard.core.tool_call import ToolCall, tool_call
 
 __all__ = [
@@ -49,6 +49,7 @@ __all__ = [
     "find_suspected_numbers",
     "load_config",
     "match_claims",
+    "policy_action",
     "register_extractor",
     "registered_extractors",
     "tool_call",

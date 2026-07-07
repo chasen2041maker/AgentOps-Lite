@@ -6,7 +6,7 @@ from functools import wraps
 
 from groundguard.core.ledger import Ledger
 from groundguard.core.models import CoverageReport, Fact
-from groundguard.core.policy import Policy
+from groundguard.core.policy import Policy, policy_action
 
 
 @dataclass(frozen=True)
@@ -42,7 +42,7 @@ def grounded_generate(
             required_fact_keys=active_required_fact_keys,
             policy=active_policy,
         )
-        if report.contradicted_count > active_policy.max_contradicted:
+        if policy_action(report, active_policy) == "reask":
             answer = llm_call(_build_reask_prompt(grounded_prompt, answer, report))
     return _finalize_grounded_answer(
         answer=answer,
@@ -95,21 +95,22 @@ def _finalize_grounded_answer(
         required_fact_keys=required_fact_keys,
         policy=policy,
     )
-    if policy.on_unverified == "strip" and report.unverified_count:
+    action = policy_action(report, policy)
+    if action == "strip":
         answer = _strip_unverified_claims(answer, report)
         report = ledger.coverage_report(
             answer,
             required_fact_keys=required_fact_keys,
             policy=policy,
         )
-    if policy.on_contradicted == "fix" and report.contradicted_count:
+    elif action == "fix":
         answer = _fix_contradicted_claims(answer, report, ledger.all_facts())
         report = ledger.coverage_report(
             answer,
             required_fact_keys=required_fact_keys,
             policy=policy,
         )
-    if _should_block(report):
+    if policy_action(report, policy) != "pass":
         raise GroundingPolicyError(answer=answer, report=report)
     if return_report:
         return GroundedResult(answer=answer, report=report)
@@ -239,7 +240,3 @@ def _cleanup_stripped_text(text: str) -> str:
     while text and text[0] in "，,.；;":
         text = text[1:].lstrip()
     return text.rstrip(" ，")
-
-
-def _should_block(report: CoverageReport) -> bool:
-    return not report.passed

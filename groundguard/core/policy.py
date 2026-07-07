@@ -5,6 +5,8 @@ from typing import Literal
 
 from groundguard.core.models import CoverageReport
 
+PolicyAction = Literal["pass", "strip", "fix", "reask", "block"]
+
 
 @dataclass(frozen=True)
 class Policy:
@@ -63,6 +65,34 @@ def evaluate_policy(report: CoverageReport, policy: Policy) -> CoverageReport:
         passed=not reasons,
         policy_reason="; ".join(reasons),
     )
+
+
+def policy_action(report: CoverageReport, policy: Policy) -> PolicyAction:
+    """Return the runtime action needed to handle a policy-evaluated report.
+
+    `evaluate_policy` owns pass/fail reasons. This helper centralizes how
+    generation runtimes should react to a failed report before they block.
+    """
+
+    if report.passed:
+        return "pass"
+    if (
+        policy.on_contradicted == "fix"
+        and report.contradicted_count > policy.max_contradicted
+    ):
+        return "fix"
+    if (
+        policy.on_contradicted == "reask"
+        and report.contradicted_count > policy.max_contradicted
+    ):
+        return "reask"
+    if (
+        policy.on_unverified == "strip"
+        and report.unverified_count > 0
+        and _unverified_ratio(report) > policy.max_unverified_ratio
+    ):
+        return "strip"
+    return "block"
 
 
 def _unverified_ratio(report: CoverageReport) -> float:

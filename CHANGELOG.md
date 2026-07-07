@@ -2,17 +2,23 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
-## Unreleased
+## v0.3.1 - 2026-07-07
 
 ### Added
 
 - Added `groundguard-init` starter templates for GitHub Actions, OpenAI,
-  promptfoo, and LangGraph.
+  promptfoo, LangGraph, PydanticAI, CrewAI, AutoGen, and FastAPI.
 - Added public JSON Schema files for `groundguard.report.v1` and
-  `groundguard.config.v1`.
+  `groundguard.config.v1`, both in the repository and packaged wheel.
 - Added comparison, recipe, production, and good-first-issue documentation.
 - Added issue templates for extractor requests, integration requests, and
   real-world failure examples.
+- Added launch-ready social post, benchmark card, and fact-flow card copy.
+
+### Changed
+
+- Centralized grounded-generation runtime decisions behind `policy_action(...)`
+  so strip, fix, reask, and block behavior shares one policy action selector.
 
 ## v0.3.0 - 2026-07-07
 

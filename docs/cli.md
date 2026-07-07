@@ -15,6 +15,10 @@ groundguard-init --template github-action
 groundguard-init --template openai
 groundguard-init --template promptfoo
 groundguard-init --template langgraph
+groundguard-init --template pydanticai
+groundguard-init --template crewai
+groundguard-init --template autogen
+groundguard-init --template fastapi
 ```
 
 The command writes `groundguard.yml`, `groundguard-ledger.jsonl`, `answer.txt`,

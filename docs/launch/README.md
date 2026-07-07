@@ -94,7 +94,7 @@ GroundGuard is intentionally small. It is not a tracing dashboard, not a hosted
 observability platform, and not an LLM-as-judge. It adds one narrow gate before
 release: did the generated answer actually match the facts your tools provided?
 
-The current v0.3.0 release includes:
+The current v0.3.1 release includes:
 - in-memory Ledger + JSONL persistence
 - a high-level FactGate API
 - explicit tool_call(...).record_facts(...) registration
@@ -126,7 +126,7 @@ Repo: https://github.com/chasen2041maker/GroundGuard
 
 - If people ask how this differs from Langfuse, Phoenix, promptfoo, or DeepEval,
   sharpen the README comparison table.
-- If people ask whether it supports non-numeric claims, point them to the v0.3.0
+- If people ask whether it supports non-numeric claims, point them to the v0.3.1
   limit: numeric claims with units or magnitude markers only.
 - If people ask for automatic fact extraction from arbitrary JSON, keep the v1
   boundary: explicit mapping first, optional extraction later.

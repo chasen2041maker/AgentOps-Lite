@@ -11,6 +11,10 @@ groundguard-init --template github-action
 groundguard-init --template openai
 groundguard-init --template promptfoo
 groundguard-init --template langgraph
+groundguard-init --template pydanticai
+groundguard-init --template crewai
+groundguard-init --template autogen
+groundguard-init --template fastapi
 ```
 
 Each template writes `groundguard.yml`, `groundguard-ledger.jsonl`,
@@ -51,6 +55,78 @@ def groundguard_node(state: dict) -> dict:
     return {**state, "groundguard_report": report, "groundguard_passed": report.passed}
 ```
 
+## PydanticAI Result Validator
+
+Use GroundGuard in the final result validator or output hook:
+
+```python
+from groundguard import FactGate
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def validate_agent_result(answer: str) -> str:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(answer, required=["q3_revenue"])
+    if not report.passed:
+        raise ValueError(report.policy_reason or "GroundGuard policy failed")
+    return answer
+```
+
+## CrewAI Task Callback
+
+Put the gate in a task callback before returning task output:
+
+```python
+from groundguard import FactGate
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def check_crew_output(output_text: str) -> dict:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(output_text, required=["q3_revenue"])
+    return {"output": output_text, "groundguard_passed": report.passed}
+```
+
+## AutoGen Reply Guard
+
+Use GroundGuard before sending a final reply:
+
+```python
+from groundguard import FactGate
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def guard_reply(reply: str) -> str:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(reply, required=["q3_revenue"])
+    if not report.passed:
+        return f"GroundGuard blocked this reply: {report.policy_reason}"
+    return reply
+```
+
+## FastAPI Backend Endpoint
+
+Keep the gate in the backend request path:
+
+```python
+from groundguard import FactGate
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def check_answer_payload(payload: dict) -> dict:
+    gate.record_tool_result("q3_revenue", payload["q3_revenue"], "billion_usd")
+    report = gate.check(payload["answer"], required=["q3_revenue"])
+    return {
+        "passed": report.passed,
+        "policy_reason": report.policy_reason,
+        "answer": payload["answer"] if report.passed else None,
+    }
+```
+
 ## GitHub Action
 
 For CI checks, generate or commit a ledger JSONL file and answer text file, then
@@ -58,7 +134,7 @@ run the composite action:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.3.0
+  uses: chasen2041maker/GroundGuard@v0.3.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

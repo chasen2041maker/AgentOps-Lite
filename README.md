@@ -10,10 +10,10 @@ Stop tool-using agents from ignoring the facts they already fetched. Important
 numeric claims must trace back to facts recorded from this run, and required
 tool facts cannot disappear silently.
 
-Works with OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
+Works with OpenAI | LangChain | LangGraph | PydanticAI | CrewAI | AutoGen | FastAPI | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg?cacheSeconds=300&cacheBust=v0.3.0)](https://pypi.org/project/groundguard-ai/)
+[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg?cacheSeconds=300&cacheBust=v0.3.1)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
@@ -28,6 +28,10 @@ Works with OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Ph
 English | [Chinese README](README.zh-CN.md)
 
 </div>
+
+**Benchmark signal:** GroundGuard catches `71/71` expected failures in a
+200-case bilingual realistic dataset, with `0` false positives and `0` false
+negatives, without using an LLM judge.
 
 ```python
 from groundguard import FactGate
@@ -95,7 +99,7 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Latest PyPI release: `0.3.0`.
+`groundguard`. Latest PyPI release: `0.3.1`.
 
 ## 10-Second Demo
 
@@ -146,7 +150,7 @@ omitted_required: 0
 - `@grounded(...)` decorator for framework-free Python functions.
 - `FactGate` high-level runtime API for config-driven record/check flows.
 - `groundguard-init` starter templates for GitHub Actions, OpenAI, promptfoo,
-  and LangGraph.
+  LangGraph, PydanticAI, CrewAI, AutoGen, and FastAPI.
 - `groundguard-report` CLI with native and assertion-style JSON schemas,
   including per-claim `componentResults`, Markdown, HTML, and GitHub comment
   renderers.
@@ -452,7 +456,7 @@ Use the composite action in another repository:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.3.0
+  uses: chasen2041maker/GroundGuard@v0.3.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

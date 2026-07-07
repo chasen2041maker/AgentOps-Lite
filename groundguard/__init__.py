@@ -21,7 +21,7 @@ from groundguard.core.output_claim_extractor import (
     registered_extractors,
     unregister_extractor,
 )
-from groundguard.core.policy import Policy, evaluate_policy
+from groundguard.core.policy import Policy, evaluate_policy, policy_action
 from groundguard.core.tool_call import ToolCall, tool_call
 from groundguard.generate import GroundedResult, GroundingPolicyError, grounded, grounded_generate
 from groundguard.report import (
@@ -64,6 +64,7 @@ __all__ = [
     "grounded_generate",
     "load_config",
     "match_claims",
+    "policy_action",
     "render_github_pr_comment",
     "render_html_report",
     "render_markdown_report",

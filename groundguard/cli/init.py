@@ -7,7 +7,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-TEMPLATE_NAMES = ("github-action", "openai", "promptfoo", "langgraph")
+TEMPLATE_NAMES = (
+    "github-action",
+    "openai",
+    "promptfoo",
+    "langgraph",
+    "pydanticai",
+    "crewai",
+    "autogen",
+    "fastapi",
+)
 
 
 @dataclass(frozen=True)
@@ -80,6 +89,14 @@ def _starter_files(template: str) -> list[StarterFile]:
         files.append(StarterFile("examples/promptfoo_groundguard.py", _PROMPTFOO_EXAMPLE))
     elif template == "langgraph":
         files.append(StarterFile("examples/langgraph_groundguard.py", _LANGGRAPH_EXAMPLE))
+    elif template == "pydanticai":
+        files.append(StarterFile("examples/pydanticai_groundguard.py", _PYDANTICAI_EXAMPLE))
+    elif template == "crewai":
+        files.append(StarterFile("examples/crewai_groundguard.py", _CREWAI_EXAMPLE))
+    elif template == "autogen":
+        files.append(StarterFile("examples/autogen_groundguard.py", _AUTOGEN_EXAMPLE))
+    elif template == "fastapi":
+        files.append(StarterFile("examples/fastapi_groundguard.py", _FASTAPI_EXAMPLE))
     return files
 
 
@@ -144,7 +161,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run GroundGuard
-        uses: chasen2041maker/GroundGuard@v0.3.0
+        uses: chasen2041maker/GroundGuard@v0.3.1
         with:
           ledger-jsonl: groundguard-ledger.jsonl
           answer-file: answer.txt
@@ -197,6 +214,90 @@ def groundguard_node(state: dict) -> dict:
     gate.record_tool_result("q3_revenue", state["q3_revenue"], "billion_usd")
     report = gate.check(state["answer"], required=["q3_revenue"])
     return {**state, "groundguard_report": report, "groundguard_passed": report.passed}
+'''
+
+
+_PYDANTICAI_EXAMPLE = '''"""PydanticAI-style result validator starter.
+
+Keep this file dependency-free: paste the `validate_agent_result(...)` body into
+your PydanticAI result validator or output hook.
+"""
+
+from groundguard import FactGate
+
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def validate_agent_result(answer: str) -> str:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(answer, required=["q3_revenue"])
+    if not report.passed:
+        raise ValueError(report.policy_reason or "GroundGuard policy failed")
+    return answer
+'''
+
+
+_CREWAI_EXAMPLE = '''"""CrewAI-style task callback starter.
+
+Call `check_crew_output(...)` from a CrewAI task callback before returning the
+final task output to a user or downstream workflow.
+"""
+
+from groundguard import FactGate
+
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def check_crew_output(output_text: str) -> dict:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(output_text, required=["q3_revenue"])
+    return {"output": output_text, "groundguard_passed": report.passed, "report": report}
+'''
+
+
+_AUTOGEN_EXAMPLE = '''"""AutoGen-style reply guard starter.
+
+Use `guard_reply(...)` in a reply hook or before sending the final assistant
+message back to the user.
+"""
+
+from groundguard import FactGate
+
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def guard_reply(reply: str) -> str:
+    gate.record_tool_result("q3_revenue", "5.2", "billion_usd")
+    report = gate.check(reply, required=["q3_revenue"])
+    if not report.passed:
+        return f"GroundGuard blocked this reply: {report.policy_reason}"
+    return reply
+'''
+
+
+_FASTAPI_EXAMPLE = '''"""FastAPI endpoint starter for guarding final agent answers.
+
+Install FastAPI separately if you want to run this file as an API server.
+GroundGuard itself stays dependency-free.
+"""
+
+from groundguard import FactGate
+
+
+gate = FactGate.from_config("groundguard.yml")
+
+
+def check_answer_payload(payload: dict) -> dict:
+    gate.record_tool_result("q3_revenue", payload["q3_revenue"], "billion_usd")
+    report = gate.check(payload["answer"], required=["q3_revenue"])
+    return {
+        "passed": report.passed,
+        "policy_reason": report.policy_reason,
+        "answer": payload["answer"] if report.passed else None,
+    }
 '''
 
 

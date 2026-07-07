@@ -8,10 +8,10 @@
 
 GroundGuard 防止工具调用型 Agent 无视自己已经查到的事实。关键数字必须能追溯到本轮工具调用中登记的事实；工具已经返回、且本轮必须覆盖的事实，也不能被模型静默遗漏。
 
-适配 OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
+适配 OpenAI | LangChain | LangGraph | PydanticAI | CrewAI | AutoGen | FastAPI | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg?cacheSeconds=300&cacheBust=v0.3.0)](https://pypi.org/project/groundguard-ai/)
+[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg?cacheSeconds=300&cacheBust=v0.3.1)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
@@ -103,7 +103,7 @@ omitted_required: 0
 - `CoverageReport` 与可配置 `Policy`。
 - `grounded_generate()` 支持返回报告、阻断输出、保守剥离未核实声明、可选修复带 fact key 的矛盾数字，以及一次性 reask。
 - `@grounded(...)` 装饰器，适合零框架纯 Python 函数。
-- `groundguard-init` 入门模板，支持 GitHub Actions、OpenAI、promptfoo 和 LangGraph。
+- `groundguard-init` 入门模板，支持 GitHub Actions、OpenAI、promptfoo、LangGraph、PydanticAI、CrewAI、AutoGen 和 FastAPI。
 - `groundguard-report` CLI 支持原生 GroundGuard JSON 和 assertion 风格 JSON，并输出 per-claim `componentResults`。
 - promptfoo / DeepEval 专用 helper adapter。
 - OpenAI-compatible wrapper、LangChain-compatible callback、LangGraph-style node 示例。
@@ -111,7 +111,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.3.0`。
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.3.1`。
 
 ```bash
 python -m pip install groundguard-ai
@@ -295,7 +295,7 @@ report:
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.3.0
+  uses: chasen2041maker/GroundGuard@v0.3.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt

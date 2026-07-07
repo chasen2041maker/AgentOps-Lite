@@ -4,7 +4,7 @@
 
 ```yaml
 - name: Run GroundGuard
-  uses: chasen2041maker/GroundGuard@v0.3.0
+  uses: chasen2041maker/GroundGuard@v0.3.1
   with:
     ledger-jsonl: groundguard-ledger.jsonl
     answer-file: answer.txt
