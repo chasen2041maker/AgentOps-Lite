@@ -2,7 +2,7 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
-## v0.3.0 - Unreleased
+## v0.3.0 - 2026-07-07
 
 ### Added
 

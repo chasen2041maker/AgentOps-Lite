@@ -13,7 +13,7 @@ tool facts cannot disappear silently.
 Works with OpenAI | LangChain | LangGraph | promptfoo | DeepEval | Langfuse | Phoenix | GitHub Actions
 
 [![CI](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/chasen2041maker/GroundGuard/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg)](https://pypi.org/project/groundguard-ai/)
+[![PyPI](https://img.shields.io/pypi/v/groundguard-ai.svg?cacheSeconds=300&cacheBust=v0.3.0)](https://pypi.org/project/groundguard-ai/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
