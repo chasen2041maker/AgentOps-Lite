@@ -19,6 +19,7 @@ class FinanceCNContext:
     trade_date: date | None = None
     previous_close: Decimal | None = None
     security_name: str | None = None
+    subject: str | None = None
 
     @classmethod
     def from_mapping(cls, context: Mapping[str, Any]) -> FinanceCNContext:
@@ -32,6 +33,7 @@ class FinanceCNContext:
             trade_date=_parse_date(payload.get("trade_date")),
             previous_close=_parse_decimal(payload.get("previous_close")),
             security_name=_optional_string(payload.get("security_name")),
+            subject=_optional_string(payload.get("subject")),
         )
 
     def has_listing_prefix_signal(self) -> bool:

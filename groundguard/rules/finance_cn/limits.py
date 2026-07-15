@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Sequence
 
 from groundguard.core.checker import CheckRequest
 from groundguard.core.models import Issue
-from groundguard.rules.finance_cn.aliases import latest_numeric_fact
+from groundguard.rules.finance_cn.aliases import coherent_numeric_facts
 from groundguard.rules.finance_cn.context import FinanceCNContext
 
 
 SSE_RULE_SOURCE = "https://www.sse.com.cn/lawandrules/sselawsrules2025/stocks/exchange/c/c_20260424_10816482.shtml"
 SZSE_RULE_SOURCE = "https://docs.static.szse.cn/www/lawrules/rule/trade/W020260424690713155663.pdf"
 RULE_EFFECTIVE_FROM = date(2026, 7, 6)
+_A_SHARE_PRICE_TICK = Decimal("0.01")
 
 
 @dataclass(frozen=True)
@@ -24,71 +25,78 @@ class PriceLimitRule:
     board: str
     listing_phase: str
     effective_from: date
-    limit_ratio: Decimal
+    limit_ratio: Decimal | None
+    price_tick: Decimal
     source_url: str
 
 
 # The July 2026 exchange rules set 10% for SH/SZ main boards and 20% for
-# SSE STAR and SZSE ChiNext in normal trading. This table does not implement
-# exchange price-tick rounding; PriceLimitChecker's tolerance is a separate
-# sanity margin, not an official exchange limit calculation.
+# SSE STAR and SZSE ChiNext during normal trading. The exchanges round the
+# calculated A-share limit to the 0.01 CNY minimum price tick using half-up.
+# Explicit special phases have no normal percentage limit in this checker.
 PRICE_LIMIT_RULES: tuple[PriceLimitRule, ...] = (
-    PriceLimitRule("SSE", "main", "normal", RULE_EFFECTIVE_FROM, Decimal("0.10"), SSE_RULE_SOURCE),
-    PriceLimitRule("SSE", "star", "normal", RULE_EFFECTIVE_FROM, Decimal("0.20"), SSE_RULE_SOURCE),
-    PriceLimitRule("SZSE", "main", "normal", RULE_EFFECTIVE_FROM, Decimal("0.10"), SZSE_RULE_SOURCE),
-    PriceLimitRule("SZSE", "chinext", "normal", RULE_EFFECTIVE_FROM, Decimal("0.20"), SZSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "main", "normal", RULE_EFFECTIVE_FROM, Decimal("0.10"), _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "star", "normal", RULE_EFFECTIVE_FROM, Decimal("0.20"), _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "main", "normal", RULE_EFFECTIVE_FROM, Decimal("0.10"), _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "chinext", "normal", RULE_EFFECTIVE_FROM, Decimal("0.20"), _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "main", "ipo_first_five_days", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "star", "ipo_first_five_days", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "main", "ipo_first_five_days", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "chinext", "ipo_first_five_days", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "main", "relisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "star", "relisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "main", "relisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "chinext", "relisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "main", "delisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SSE", "star", "delisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "main", "delisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
+    PriceLimitRule("SZSE", "chinext", "delisting_first_day", RULE_EFFECTIVE_FROM, None, _A_SHARE_PRICE_TICK, SZSE_RULE_SOURCE),
 )
 
 _SUPPORTED_EXCHANGES = frozenset({"SSE", "SZSE"})
-_NO_NORMAL_LIMIT_PHASES = frozenset(
-    {"ipo_first_five_days", "relisting_first_day", "delisting_first_day"}
-)
 
 
 class PriceLimitChecker:
-    """Check a caller-provided price against one explicit normal-phase rule."""
+    """Check one subject's price against its explicit dated rule."""
 
     name = "price_limit"
-
-    def __init__(self, *, price_tolerance: Decimal = Decimal("0.0001")) -> None:
-        if price_tolerance < 0:
-            raise ValueError("price_tolerance must not be negative")
-        self._price_tolerance = price_tolerance
 
     def check(self, request: CheckRequest) -> Sequence[Issue]:
         context = FinanceCNContext.from_mapping(request.context)
         if context.exchange and context.exchange not in _SUPPORTED_EXCHANGES:
             return (_unsupported_market_issue(context.exchange),)
 
-        price = latest_numeric_fact(request.facts, "price")
-        previous_close = context.previous_close
-        previous_close_fact = latest_numeric_fact(request.facts, "previous_close")
-        if previous_close is None and previous_close_fact is not None:
-            previous_close = previous_close_fact[1]
-        missing = _missing_context_fields(context, price, previous_close)
-        if missing:
-            return (_insufficient_context_issue(missing),)
-
         prefix_issue = _prefix_conflict_issue(context)
-        if context.listing_phase in _NO_NORMAL_LIMIT_PHASES:
-            return (prefix_issue,) if prefix_issue is not None else ()
-
         rule = _select_rule(context)
         if rule is None:
             issue = _insufficient_context_issue(("effective_price_limit_rule",))
             return (prefix_issue, issue) if prefix_issue is not None else (issue,)
+        if rule.limit_ratio is None:
+            return (prefix_issue,) if prefix_issue is not None else ()
+
+        fields = ("price",) if context.previous_close is not None else ("price", "previous_close")
+        values = coherent_numeric_facts(request.facts, fields, subject=context.subject)
+        price = values.get("price") if values is not None else None
+        previous_close_fact = values.get("previous_close") if values is not None else None
+        previous_close = context.previous_close
+        if previous_close is None and previous_close_fact is not None:
+            previous_close = previous_close_fact[1]
+        missing = _missing_context_fields(context, price, previous_close)
+        if missing:
+            issue = _insufficient_context_issue(missing)
+            return (prefix_issue, issue) if prefix_issue is not None else (issue,)
 
         assert price is not None
-        price_fact, price_value = price
         assert previous_close is not None
-        upper_limit = previous_close * (Decimal("1") + rule.limit_ratio)
-        lower_limit = previous_close * (Decimal("1") - rule.limit_ratio)
-        if lower_limit - self._price_tolerance <= price_value <= upper_limit + self._price_tolerance:
+        price_fact, price_value = price
+        upper_limit = _rounded_limit(previous_close, rule.limit_ratio, Decimal("1"), rule.price_tick)
+        lower_limit = _rounded_limit(previous_close, rule.limit_ratio, Decimal("-1"), rule.price_tick)
+        if lower_limit <= price_value <= upper_limit:
             return (prefix_issue,) if prefix_issue is not None else ()
         issue = Issue(
             code="price_limit_conflict",
             severity="hard",
-            message="Price falls outside the configured normal-phase price-limit range.",
+            message="Price falls outside the configured price-limit range.",
             checker=self.name,
             related_fact_keys=(price_fact.key,)
             + ((previous_close_fact[0].key,) if previous_close_fact is not None else ()),
@@ -102,10 +110,24 @@ class PriceLimitChecker:
                 "lower_limit": str(lower_limit),
                 "upper_limit": str(upper_limit),
                 "limit_ratio": str(rule.limit_ratio),
+                "price_tick": str(rule.price_tick),
                 "source_url": rule.source_url,
             },
         )
         return (prefix_issue, issue) if prefix_issue is not None else (issue,)
+
+
+def _rounded_limit(
+    previous_close: Decimal,
+    limit_ratio: Decimal,
+    direction: Decimal,
+    price_tick: Decimal,
+) -> Decimal:
+    calculated = previous_close * (Decimal("1") + direction * limit_ratio)
+    rounded = calculated.quantize(price_tick, rounding=ROUND_HALF_UP)
+    if abs(rounded - previous_close) < price_tick:
+        rounded = previous_close + direction * price_tick
+    return max(rounded, price_tick)
 
 
 def _missing_context_fields(

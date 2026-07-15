@@ -178,9 +178,9 @@ from groundguard.checkers import OrphanNumberChecker
 from groundguard.rules.finance_cn import PriceDirectionChecker, PriceLimitChecker
 
 gate = FactGate(session_id="synthetic_quote")
-gate.record_tool_result("price", Decimal("10.50"), "CNY")
-gate.record_tool_result("previous_close", Decimal("10.00"), "CNY")
-gate.record_tool_result("change_pct", Decimal("5.00"), "%")
+gate.record_tool_result("price", Decimal("10.50"), "CNY", subject="600000")
+gate.record_tool_result("previous_close", Decimal("10.00"), "CNY", subject="600000")
+gate.record_tool_result("change_pct", Decimal("5.00"), "%", subject="600000")
 
 report = gate.check(
     "Synthetic quote checked.",
@@ -195,6 +195,7 @@ report = gate.check(
             "board": "main",
             "listing_phase": "normal",
             "trade_date": "2026-07-15",
+            "subject": "600000",
         }
     },
 )
@@ -208,7 +209,7 @@ the caller has explicit market context. It supports SSE/SZSE main boards,
 SSE STAR, and SZSE ChiNext rules in this release. BSE, Hong Kong, US, and other
 markets are intentionally unsupported and skipped. See
 [limitations](docs/limitations.md) for source links, effective dates, and the
-price-tolerance boundary.
+0.01 CNY half-up price-tick calculation boundary.
 
 ## Installation
 

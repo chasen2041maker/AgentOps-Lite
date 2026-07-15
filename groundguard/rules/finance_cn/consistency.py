@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
-from typing import Sequence
+from typing import Literal
 
 from groundguard.core.checker import CheckRequest
 from groundguard.core.models import Issue
-from groundguard.rules.finance_cn.aliases import latest_numeric_fact, metric_kind, numeric_value
+from groundguard.rules.finance_cn.aliases import coherent_numeric_facts, numeric_value
+from groundguard.rules.finance_cn.context import FinanceCNContext
 
 
 class PriceDirectionChecker:
@@ -25,33 +27,37 @@ class PriceDirectionChecker:
         self._percent_tolerance = percent_tolerance
 
     def check(self, request: CheckRequest) -> Sequence[Issue]:
-        price = latest_numeric_fact(request.facts, "price")
-        previous_close = latest_numeric_fact(request.facts, "previous_close")
-        change_pct = latest_numeric_fact(request.facts, "change_pct")
-        if price is None or previous_close is None or change_pct is None:
+        context = FinanceCNContext.from_mapping(request.context)
+        values = coherent_numeric_facts(
+            request.facts,
+            ("price", "previous_close", "change_pct"),
+            subject=context.subject,
+        )
+        if values is None:
             return ()
-        if (
-            price[1] > previous_close[1] + self._price_tolerance
-            and change_pct[1] < -self._percent_tolerance
-        ) or (
-            price[1] < previous_close[1] - self._price_tolerance
-            and change_pct[1] > self._percent_tolerance
-        ):
-            return (
-                Issue(
-                    code="price_direction_conflict",
-                    severity="hard",
-                    message="Price direction conflicts with the recorded percentage change.",
-                    checker=self.name,
-                    related_fact_keys=(price[0].key, previous_close[0].key, change_pct[0].key),
-                    details={
-                        "price": str(price[1]),
-                        "previous_close": str(previous_close[1]),
-                        "change_pct": str(change_pct[1]),
-                    },
-                ),
-            )
-        return ()
+        price = values["price"]
+        previous_close = values["previous_close"]
+        change_pct = values["change_pct"]
+        price_direction = _direction(price[1] - previous_close[1], self._price_tolerance)
+        percentage_direction = _direction(change_pct[1], self._percent_tolerance)
+        if price_direction == percentage_direction:
+            return ()
+        return (
+            Issue(
+                code="price_direction_conflict",
+                severity="hard",
+                message="Price direction conflicts with the recorded percentage change.",
+                checker=self.name,
+                related_fact_keys=(price[0].key, previous_close[0].key, change_pct[0].key),
+                details={
+                    "price": str(price[1]),
+                    "previous_close": str(previous_close[1]),
+                    "change_pct": str(change_pct[1]),
+                    "price_direction": price_direction,
+                    "percentage_direction": percentage_direction,
+                },
+            ),
+        )
 
 
 class AmplitudeChecker:
@@ -63,12 +69,18 @@ class AmplitudeChecker:
         self._tolerance = tolerance
 
     def check(self, request: CheckRequest) -> Sequence[Issue]:
-        high = latest_numeric_fact(request.facts, "high")
-        low = latest_numeric_fact(request.facts, "low")
-        previous_close = latest_numeric_fact(request.facts, "previous_close")
-        amplitude = latest_numeric_fact(request.facts, "amplitude")
-        if high is None or low is None or previous_close is None or amplitude is None:
+        context = FinanceCNContext.from_mapping(request.context)
+        values = coherent_numeric_facts(
+            request.facts,
+            ("high", "low", "previous_close", "amplitude"),
+            subject=context.subject,
+        )
+        if values is None:
             return ()
+        high = values["high"]
+        low = values["low"]
+        previous_close = values["previous_close"]
+        amplitude = values["amplitude"]
         if previous_close[1] == 0:
             return ()
         expected = (high[1] - low[1]) / previous_close[1] * Decimal("100")
@@ -95,11 +107,17 @@ class TurnoverRateChecker:
         self._tolerance = tolerance
 
     def check(self, request: CheckRequest) -> Sequence[Issue]:
-        volume = latest_numeric_fact(request.facts, "volume")
-        float_shares = latest_numeric_fact(request.facts, "float_shares")
-        turnover_rate = latest_numeric_fact(request.facts, "turnover_rate")
-        if volume is None or float_shares is None or turnover_rate is None:
+        context = FinanceCNContext.from_mapping(request.context)
+        values = coherent_numeric_facts(
+            request.facts,
+            ("volume", "float_shares", "turnover_rate"),
+            subject=context.subject,
+        )
+        if values is None:
             return ()
+        volume = values["volume"]
+        float_shares = values["float_shares"]
+        turnover_rate = values["turnover_rate"]
         if float_shares[1] <= 0:
             return ()
         expected = volume[1] / float_shares[1] * Decimal("100")
@@ -118,33 +136,52 @@ class TurnoverRateChecker:
 
 
 class FinancialSignChecker:
-    """Check signs only for explicitly classified public financial metrics."""
+    """Validate financial signs only when callers supply their semantics."""
 
     name = "financial_sign"
 
-    def __init__(self, *, tolerance: Decimal = Decimal("0")) -> None:
+    def __init__(
+        self,
+        *,
+        expected_signs: Mapping[str, Literal["non_negative", "non_positive"]] | None = None,
+        tolerance: Decimal = Decimal("0"),
+    ) -> None:
+        self._expected_signs = {
+            key.casefold(): sign for key, sign in (expected_signs or {}).items()
+        }
+        invalid_signs = set(self._expected_signs.values()).difference({"non_negative", "non_positive"})
+        if invalid_signs:
+            raise ValueError("expected_signs values must be 'non_negative' or 'non_positive'")
         self._tolerance = tolerance
 
     def check(self, request: CheckRequest) -> Sequence[Issue]:
         issues: list[Issue] = []
         for fact in request.facts:
-            kind = metric_kind(fact)
+            expected_sign = self._expected_signs.get(fact.key.casefold())
             value = numeric_value(fact)
-            if kind is None or value is None:
+            if expected_sign is None or value is None:
                 continue
-            conflicts = (
-                kind == "profit" and value < -self._tolerance
-            ) or (kind == "loss" and value > self._tolerance)
+            conflicts = (expected_sign == "non_negative" and value < -self._tolerance) or (
+                expected_sign == "non_positive" and value > self._tolerance
+            )
             if not conflicts:
                 continue
             issues.append(
                 Issue(
                     code="financial_sign_conflict",
                     severity="hard",
-                    message="Recorded financial value conflicts with its explicit metric kind.",
+                    message="Recorded financial value conflicts with caller-provided sign semantics.",
                     checker=self.name,
                     related_fact_keys=(fact.key,),
-                    details={"metric_kind": kind, "value": str(value)},
+                    details={"expected_sign": expected_sign, "value": str(value)},
                 )
             )
         return tuple(issues)
+
+
+def _direction(value: Decimal, tolerance: Decimal) -> int:
+    if value > tolerance:
+        return 1
+    if value < -tolerance:
+        return -1
+    return 0

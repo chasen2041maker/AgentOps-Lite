@@ -25,7 +25,7 @@ class CheckRequest:
         context = dict(self.context)
         if not _is_json_safe(context):
             raise ValueError("checker context must be JSON-safe")
-        object.__setattr__(self, "context", MappingProxyType(context))
+        object.__setattr__(self, "context", _freeze_context(context))
 
 
 class Checker(Protocol):
@@ -83,3 +83,11 @@ def _checker_name(checker: Checker) -> str:
     except Exception:
         name = "unknown_checker"
     return (name or "unknown_checker")[:120]
+
+
+def _freeze_context(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_context(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_context(item) for item in value)
+    return value

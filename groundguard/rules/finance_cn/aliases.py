@@ -1,4 +1,4 @@
-"""Public generic fact and metric aliases used by finance_cn checkers."""
+"""Public generic fact aliases used by finance_cn checkers."""
 
 from __future__ import annotations
 
@@ -20,20 +20,28 @@ FACT_ALIASES: dict[str, frozenset[str]] = {
     "turnover_rate": frozenset({"turnover_rate", "turnover_pct"}),
 }
 
-METRIC_KIND_ALIASES: dict[str, frozenset[str]] = {
-    "profit": frozenset({"profit", "net_profit", "operating_profit"}),
-    "loss": frozenset({"loss", "net_loss", "operating_loss"}),
-}
-
 
 def latest_numeric_fact(
     facts: Sequence[Fact],
     field: str,
+    *,
+    subject: str | None = None,
 ) -> tuple[Fact, Decimal] | None:
     aliases = FACT_ALIASES[field]
+    if subject is None:
+        subjects = {
+            fact.subject
+            for fact in facts
+            if fact.key.casefold() in aliases and numeric_value(fact) is not None
+        }
+        if len(subjects) != 1:
+            return None
+        subject = next(iter(subjects))
     selected: tuple[Fact, Decimal] | None = None
     for fact in facts:
         if fact.key.casefold() not in aliases:
+            continue
+        if subject is not None and fact.subject != subject:
             continue
         value = numeric_value(fact)
         if value is None:
@@ -43,16 +51,45 @@ def latest_numeric_fact(
     return selected
 
 
-def metric_kind(fact: Fact) -> str | None:
-    candidates = (fact.fact_type, fact.key)
-    for candidate in candidates:
-        if candidate is None:
-            continue
-        normalized = candidate.casefold()
-        for kind, aliases in METRIC_KIND_ALIASES.items():
-            if normalized in aliases:
-                return kind
-    return None
+def coherent_numeric_facts(
+    facts: Sequence[Fact],
+    fields: Sequence[str],
+    *,
+    subject: str | None = None,
+) -> dict[str, tuple[Fact, Decimal]] | None:
+    """Return latest values only when every field belongs to one subject."""
+
+    possible_subjects: set[str | None] | None = None
+    for field in fields:
+        aliases = FACT_ALIASES[field]
+        field_subjects = {
+            fact.subject
+            for fact in facts
+            if fact.key.casefold() in aliases
+            and (subject is None or fact.subject == subject)
+            and numeric_value(fact) is not None
+        }
+        if not field_subjects:
+            return None
+        possible_subjects = (
+            field_subjects
+            if possible_subjects is None
+            else possible_subjects.intersection(field_subjects)
+        )
+        if not possible_subjects:
+            return None
+
+    if possible_subjects is None or len(possible_subjects) != 1:
+        return None
+
+    selected_subject = next(iter(possible_subjects))
+    selected: dict[str, tuple[Fact, Decimal]] = {}
+    for field in fields:
+        value = latest_numeric_fact(facts, field, subject=selected_subject)
+        if value is None:
+            return None
+        selected[field] = value
+    return selected
 
 
 def numeric_value(fact: Fact) -> Decimal | None:

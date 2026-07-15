@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+import re
 
 from groundguard.core.checker import CheckRequest
 from groundguard.core.models import Issue, SuspectedNumber
@@ -74,15 +75,18 @@ def _is_year(text_span: str) -> bool:
 def _is_stock_code(number: SuspectedNumber, answer: str) -> bool:
     if not (number.text_span.isdigit() and len(number.text_span) == 6):
         return False
-    prefix = answer[max(0, number.start - 8) : number.start].upper()
-    return any(marker in prefix for marker in ("SSE", "SZSE", "SH", "SZ", "STOCK"))
+    prefix = answer[: number.start].upper()
+    return bool(re.search(r"(?<![A-Z0-9])(?:SSE|SZSE|SH|SZ|STOCK)\s*$", prefix))
 
 
 def _is_list_marker(number: SuspectedNumber, answer: str) -> bool:
     if not number.text_span.isdigit() or len(number.text_span) > 2:
         return False
+    line_start = answer.rfind("\n", 0, number.start) + 1
+    if answer[line_start : number.start].strip():
+        return False
     suffix = answer[number.end : number.end + 1]
-    return suffix in {".", ")", "、"}
+    return suffix in {".", ")", "\u3001"}
 
 
 def _is_date_or_time_component(number: SuspectedNumber, answer: str) -> bool:
@@ -95,4 +99,9 @@ def _is_date_or_time_component(number: SuspectedNumber, answer: str) -> bool:
 
 def _is_percentage(text_span: str) -> bool:
     normalized = text_span.casefold()
-    return "%" in normalized or "percent" in normalized or "百分点" in text_span or "基点" in text_span
+    return (
+        "%" in normalized
+        or "percent" in normalized
+        or "\u767e\u5206\u70b9" in text_span
+        or "\u57fa\u70b9" in text_span
+    )

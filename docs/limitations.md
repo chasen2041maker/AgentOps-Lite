@@ -50,16 +50,25 @@ The normal-phase price-limit table is effective from 2026-07-06:
 | SZSE | main | 10% |
 | SZSE | chinext | 20% |
 
-The normal-phase check is skipped for the IPO first five trading days,
-relisting first day, and delisting first day. It also skips when required
-structured context is missing. BSE is reported as unsupported and is never
-treated as a 20% market. Hong Kong, US, and other markets are outside this
-package's scope.
+The rule table explicitly marks the IPO first five trading days, relisting
+first day, and delisting first day as phases without a normal percentage limit
+in this checker. It also skips when required structured context is missing. BSE
+is reported as unsupported and is never treated as a 20% market. Hong Kong, US,
+and other markets are outside this package's scope.
 
-Price checks use an explicit local tolerance so a caller can avoid reporting
-tiny representation differences. That tolerance is a GroundGuard sanity margin,
-not an exchange price-tick rounding implementation or a claim of exact trading
-eligibility.
+For the supported A-share normal phases, price limits are calculated from the
+previous close and rounded to the CNY 0.01 minimum price tick with `ROUND_HALF_UP`.
+This follows the cited exchange rounding rule, including the one-tick safeguard
+when a rounded limit would otherwise be too close to the previous close. It is
+still a narrow deterministic validator, not a full exchange trading-eligibility
+engine: it does not model every instrument class, session condition, corporate
+action, trading halt, or exchange exception.
+
+Finance checkers only combine facts from one `subject`. If multiple subjects
+could satisfy a required fact set and the caller has not selected one with
+`finance_cn.subject`, the checker skips the calculation rather than mixing
+securities. `FinancialSignChecker` likewise requires caller-provided
+`expected_signs`; a negative `net_profit` is not inherently contradictory.
 
 Official references used for the table:
 

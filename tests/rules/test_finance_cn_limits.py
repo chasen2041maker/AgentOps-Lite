@@ -71,16 +71,38 @@ def test_price_limit_uses_explicit_exchange_board_rule_table(
     assert [issue.code for issue in rejected.issues] == ["price_limit_conflict"]
 
 
-def test_price_limit_skips_normal_limit_for_ipo_first_five_days() -> None:
+@pytest.mark.parametrize(
+    "phase",
+    ("ipo_first_five_days", "relisting_first_day", "delisting_first_day"),
+)
+def test_price_limit_skips_normal_limit_for_special_listing_phases(phase: str) -> None:
     report = _limit_report(
         exchange="SSE",
         board="main",
         price="20.00",
-        phase="ipo_first_five_days",
+        phase=phase,
     )
 
     assert report.passed is True
     assert report.issues == ()
+
+
+def test_price_limit_rounds_boundary_to_a_share_minimum_price_tick() -> None:
+    allowed = _limit_report(
+        exchange="SZSE",
+        board="main",
+        price="11.06",
+        previous_close="10.05",
+    )
+    rejected = _limit_report(
+        exchange="SZSE",
+        board="main",
+        price="11.07",
+        previous_close="10.05",
+    )
+
+    assert allowed.issues == ()
+    assert [issue.code for issue in rejected.issues] == ["price_limit_conflict"]
 
 
 def test_price_limit_missing_context_skips_without_hard_issue() -> None:

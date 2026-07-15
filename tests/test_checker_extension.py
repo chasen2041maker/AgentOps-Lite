@@ -31,6 +31,28 @@ class FailingChecker:
         raise RuntimeError("sensitive implementation detail must not escape")
 
 
+class NestedContextMutationChecker:
+    name = "nested-mutation"
+
+    def check(self, request):  # type: ignore[no-untyped-def]
+        try:
+            request.context["nested"]["values"][0] = "mutated"
+        except TypeError:
+            pass
+        return ()
+
+
+class NestedContextRecordingChecker:
+    name = "nested-recording"
+
+    def __init__(self) -> None:
+        self.observed: object | None = None
+
+    def check(self, request):  # type: ignore[no-untyped-def]
+        self.observed = request.context["nested"]["values"]
+        return ()
+
+
 def _verified_gate() -> FactGate:
     gate = FactGate(session_id="request_1", clock=lambda: 100.0)
     gate.record_fact(
@@ -151,3 +173,18 @@ def test_issue_payload_is_json_serializable() -> None:
     serialized = json.dumps(asdict(issue), ensure_ascii=False)
 
     assert '"code": "serializable"' in serialized
+
+
+def test_checker_context_is_recursively_frozen_and_isolated_from_caller() -> None:
+    caller_context = {"nested": {"values": ["original"]}}
+    recording = NestedContextRecordingChecker()
+
+    report = _verified_gate().check(
+        "Revenue was $3.83 billion [fact:revenue].",
+        checkers=(NestedContextMutationChecker(), recording),
+        context=caller_context,
+    )
+
+    assert report.issues == ()
+    assert recording.observed == ("original",)
+    assert caller_context == {"nested": {"values": ["original"]}}

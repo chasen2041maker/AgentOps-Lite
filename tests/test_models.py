@@ -59,6 +59,27 @@ def test_fact_context_fields_are_optional_and_preserve_legacy_construction():
     assert enriched_fact.fact_type == "quote"
 
 
+def test_fact_observed_at_requires_timezone_aware_iso_8601_timestamp():
+    from groundguard import Fact
+    import pytest
+
+    common = {
+        "id": "fact_time",
+        "source_tool": "tool",
+        "source_call_id": "call",
+        "key": "price",
+        "value": Decimal("10"),
+    }
+
+    accepted = Fact(**common, observed_at="2026-07-15T09:30:00+08:00")
+    assert accepted.observed_at == "2026-07-15T09:30:00+08:00"
+
+    with pytest.raises(ValueError, match="observed_at"):
+        Fact(**common, observed_at="not-a-time")
+    with pytest.raises(ValueError, match="observed_at"):
+        Fact(**common, observed_at="2026-07-15T09:30:00")
+
+
 def test_required_fact_defaults_to_required_severity():
     from groundguard import RequiredFact
 

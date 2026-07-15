@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 import math
 from typing import Any, Literal
@@ -42,6 +43,18 @@ class Fact:
     observed_at: str | None = None
     source_field: str | None = None
     fact_type: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.observed_at is None:
+            return
+        if not isinstance(self.observed_at, str):
+            raise ValueError("observed_at must be a timezone-aware ISO 8601 string")
+        try:
+            parsed = datetime.fromisoformat(self.observed_at)
+        except ValueError as exc:
+            raise ValueError("observed_at must be a timezone-aware ISO 8601 string") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("observed_at must be a timezone-aware ISO 8601 string")
 
 
 @dataclass

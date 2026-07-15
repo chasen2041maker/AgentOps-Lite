@@ -90,3 +90,25 @@ def test_orphan_checker_deduplicates_same_span_even_when_units_differ() -> None:
 
     assert len(issues) == 1
     assert issues[0].text_span == "10 USD"
+
+
+def test_orphan_checker_does_not_treat_cash_as_a_stock_prefix() -> None:
+    from groundguard.checkers import OrphanNumberChecker
+
+    report = FactGate(session_id="orphan_cash", clock=lambda: 100.0).check(
+        "Cash was 123456.",
+        checkers=(OrphanNumberChecker(),),
+    )
+
+    assert [issue.text_span for issue in report.issues] == ["123456"]
+
+
+def test_orphan_checker_does_not_treat_sentence_period_as_list_marker() -> None:
+    from groundguard.checkers import OrphanNumberChecker
+
+    report = FactGate(session_id="orphan_sentence", clock=lambda: 100.0).check(
+        "Revenue grew by 12.",
+        checkers=(OrphanNumberChecker(),),
+    )
+
+    assert [issue.text_span for issue in report.issues] == ["12"]
