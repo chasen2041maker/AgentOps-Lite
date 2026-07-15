@@ -76,7 +76,9 @@ def _is_stock_code(number: SuspectedNumber, answer: str) -> bool:
     if not (number.text_span.isdigit() and len(number.text_span) == 6):
         return False
     prefix = answer[: number.start].upper()
-    return bool(re.search(r"(?<![A-Z0-9])(?:SSE|SZSE|SH|SZ|STOCK)\s*$", prefix))
+    return bool(
+        re.search(r"(?<![A-Z0-9])(?:SSE|SZSE|SH|SZ|STOCK)(?:\s+|\.\s*)?$", prefix)
+    )
 
 
 def _is_list_marker(number: SuspectedNumber, answer: str) -> bool:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+import pytest
+
 from groundguard import CheckRequest, FactGate, SuspectedNumber
 
 
@@ -25,6 +27,21 @@ def test_orphan_checker_ignores_dates_years_times_codes_and_list_markers() -> No
 
     report = FactGate(session_id="orphan_non_business", clock=lambda: 100.0).check(
         "1. On 2026-07-15 at 09:30, SSE 600519 was reviewed.",
+        checkers=(OrphanNumberChecker(),),
+    )
+
+    assert report.issues == ()
+
+
+@pytest.mark.parametrize(
+    "stock_code",
+    ("SH.600519", "SZ.000001", "SSE.600519", "SZSE.000001"),
+)
+def test_orphan_checker_ignores_dot_separated_stock_codes(stock_code: str) -> None:
+    from groundguard.checkers import OrphanNumberChecker
+
+    report = FactGate(session_id="orphan_dot_code", clock=lambda: 100.0).check(
+        f"{stock_code} was reviewed.",
         checkers=(OrphanNumberChecker(),),
     )
 
