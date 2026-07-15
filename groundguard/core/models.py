@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal
+import math
 from typing import Any, Literal
 
 
@@ -35,6 +37,11 @@ class Fact:
     confidence: float = 1.0
     metadata: dict[str, Any] = field(default_factory=dict)
     schema_version: int = 1
+    subject: str | None = None
+    as_of: str | None = None
+    observed_at: str | None = None
+    source_field: str | None = None
+    fact_type: str | None = None
 
 
 @dataclass
@@ -78,6 +85,32 @@ class SuspectedNumber:
     reason: str = "not_extracted"
 
 
+@dataclass(frozen=True)
+class Issue:
+    """One deterministic checker finding attached to a coverage report."""
+
+    code: str
+    severity: Literal["hard", "soft"]
+    message: str
+    checker: str
+    related_fact_keys: tuple[str, ...] = ()
+    related_claim_ids: tuple[str, ...] = ()
+    text_span: str | None = None
+    start: int | None = None
+    end: int | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.code or not self.checker:
+            raise ValueError("issue code and checker must be non-empty")
+        if self.severity not in {"hard", "soft"}:
+            raise ValueError("issue severity must be 'hard' or 'soft'")
+        if not isinstance(self.details, dict) or not _is_json_safe(self.details):
+            raise ValueError("issue details must be JSON-safe")
+        if len(self.message) > 512:
+            object.__setattr__(self, "message", self.message[:512])
+
+
 @dataclass
 class CoverageReport:
     """A fact coverage report for a single generated answer."""
@@ -98,6 +131,9 @@ class CoverageReport:
     passed: bool = True
     policy_reason: str = ""
     schema_version: int = 1
+    issues: tuple[Issue, ...] = ()
+    hard_issue_count: int = 0
+    soft_issue_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -129,3 +165,15 @@ class DatasetCase:
     policy: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
     schema_version: int = 1
+
+
+def _is_json_safe(value: object) -> bool:
+    if value is None or isinstance(value, (str, int, bool)):
+        return True
+    if isinstance(value, float):
+        return math.isfinite(value)
+    if isinstance(value, Mapping):
+        return all(isinstance(key, str) and _is_json_safe(item) for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return all(_is_json_safe(item) for item in value)
+    return False
