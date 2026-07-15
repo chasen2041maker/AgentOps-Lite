@@ -111,7 +111,7 @@ omitted_required: 0
 
 ## 安装
 
-GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。PyPI 最新发布版本：`0.3.1`。
+GroundGuard 仍处于 pre-alpha 阶段，已发布到 PyPI。PyPI 分发包名是 `groundguard-ai`，Python 导入名仍然是 `groundguard`。当前源码树仅用于本地验证的 RC 版本是 `0.4.0rc1`，尚未上传到 PyPI；PyPI 最新发布版本仍为：`0.3.1`。
 
 ```bash
 python -m pip install groundguard-ai

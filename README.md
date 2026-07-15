@@ -99,7 +99,8 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Latest PyPI release: `0.3.1`.
+`groundguard`. This source tree builds the local release candidate
+`0.4.0rc1`; it has not been uploaded to PyPI. Latest PyPI release: `0.3.1`.
 
 ## 10-Second Demo
 
@@ -161,6 +162,53 @@ omitted_required: 0
   node examples.
 - A composite GitHub Action for CI fact gates.
 - A tiny dependency-free HTTP server entrypoint for gateway-style checks.
+
+## Deterministic Checkers
+
+`0.4.0rc1` adds synchronous checkers that are passed explicitly for one
+`FactGate.check(...)` call. They are not globally registered, do not call a
+network, database, or LLM, and return structured `Issue` records in the normal
+report output.
+
+```python
+from decimal import Decimal
+
+from groundguard import FactGate
+from groundguard.checkers import OrphanNumberChecker
+from groundguard.rules.finance_cn import PriceDirectionChecker, PriceLimitChecker
+
+gate = FactGate(session_id="synthetic_quote")
+gate.record_tool_result("price", Decimal("10.50"), "CNY")
+gate.record_tool_result("previous_close", Decimal("10.00"), "CNY")
+gate.record_tool_result("change_pct", Decimal("5.00"), "%")
+
+report = gate.check(
+    "Synthetic quote checked.",
+    checkers=(
+        OrphanNumberChecker(),
+        PriceDirectionChecker(),
+        PriceLimitChecker(),
+    ),
+    context={
+        "finance_cn": {
+            "exchange": "SSE",
+            "board": "main",
+            "listing_phase": "normal",
+            "trade_date": "2026-07-15",
+        }
+    },
+)
+
+assert report.passed
+assert report.issues == ()
+```
+
+`finance_cn` is an opt-in package: import and construct its checkers only when
+the caller has explicit market context. It supports SSE/SZSE main boards,
+SSE STAR, and SZSE ChiNext rules in this release. BSE, Hong Kong, US, and other
+markets are intentionally unsupported and skipped. See
+[limitations](docs/limitations.md) for source links, effective dates, and the
+price-tolerance boundary.
 
 ## Installation
 
@@ -547,6 +595,8 @@ python examples/openai_demo/run.py --live-openai
   or OpenTelemetry instead.
 - Not an LLM-as-judge or general hallucination detector; it checks deterministic
   ledger-vs-answer assertions.
+- It does not call a second LLM by default, including when deterministic
+  checkers are enabled.
 - Not a database or hosted service; it runs locally, and important numbers need
   a unit, magnitude, or fact marker to be checked.
 
