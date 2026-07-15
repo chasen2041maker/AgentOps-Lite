@@ -26,8 +26,11 @@ def report_to_versioned_dict(report: CoverageReport) -> dict[str, Any]:
             "ambiguous_count": report.ambiguous_count,
             "omitted_required_count": report.omitted_required_count,
             "extraction_coverage": report.extraction_coverage,
+            "hard_issue_count": report.hard_issue_count,
+            "soft_issue_count": report.soft_issue_count,
         },
         "claims": _json_safe([asdict(claim) for claim in report.output_claims]),
+        "issues": _json_safe([asdict(issue) for issue in report.issues]),
         "required_facts": _json_safe([asdict(item) for item in report.required_facts]),
         "omitted_required_facts": _json_safe(
             [asdict(item) for item in report.omitted_required_facts]
@@ -64,6 +67,8 @@ def assertion_report_from_coverage(report: CoverageReport) -> AssertionReport:
             "groundguard.ambiguous_count": report.ambiguous_count,
             "groundguard.omitted_required_count": report.omitted_required_count,
             "groundguard.extraction_coverage": report.extraction_coverage,
+            "groundguard.hard_issue_count": report.hard_issue_count,
+            "groundguard.soft_issue_count": report.soft_issue_count,
         },
         claims=_json_safe([asdict(claim) for claim in report.output_claims]),
         component_results=[
@@ -84,6 +89,6 @@ def _json_safe(value: Any) -> Any:
         return str(value)
     if isinstance(value, dict):
         return {key: _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
     return value

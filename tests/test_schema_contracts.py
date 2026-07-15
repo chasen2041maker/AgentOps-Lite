@@ -82,6 +82,24 @@ def test_public_json_schema_files_exist_and_expose_core_contracts():
     assert {"status", "text_span", "matched_fact_key", "ledger_value"} <= set(
         claim_properties
     )
+    assert "issues" in report_schema["properties"]
+    assert report_schema["properties"]["issues"]["items"]["$ref"] == "#/$defs/issue"
+    assert {"hard_issue_count", "soft_issue_count"} <= set(
+        report_schema["$defs"]["summary"]["properties"]
+    )
+    issue_properties = report_schema["$defs"]["issue"]["properties"]
+    assert {
+        "code",
+        "severity",
+        "message",
+        "checker",
+        "related_fact_keys",
+        "related_claim_ids",
+        "text_span",
+        "start",
+        "end",
+        "details",
+    } <= set(issue_properties)
 
     assert config_schema["$id"].endswith("groundguard.config.v1.schema.json")
     assert {"required_facts", "policy", "extractors", "units", "report"} <= set(

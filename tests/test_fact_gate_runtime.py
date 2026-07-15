@@ -141,6 +141,43 @@ def test_fact_gate_can_write_and_restore_ledger_jsonl():
     assert report.verified_count == 1
 
 
+def test_fact_gate_preserves_context_fields_through_recording_and_jsonl_round_trip():
+    from groundguard import FactGate
+
+    temp_dir = _temp_dir()
+    ledger_path = temp_dir / "enriched-facts.jsonl"
+    gate = FactGate(session_id="req_context", clock=lambda: 100.0)
+    recorded = gate.record_fact(
+        key="price",
+        value=Decimal("123.45"),
+        unit="CNY",
+        source_tool="market_data",
+        source_call_id="call_price",
+        subject="SZ.000001",
+        as_of="2026-07-15",
+        observed_at="2026-07-15T09:30:00+08:00",
+        source_field="last_price",
+        fact_type="quote",
+    )
+    tool_recorded = gate.record_tool_result(
+        "turnover_rate",
+        Decimal("2.5"),
+        "%",
+        subject="SZ.000001",
+        as_of="2026-07-15",
+        observed_at="2026-07-15T09:30:00+08:00",
+        source_field="turnover_rate",
+        fact_type="indicator",
+    )
+    gate.to_jsonl(ledger_path)
+    restored = FactGate.from_jsonl(ledger_path, session_id="req_context")
+
+    assert recorded.subject == "SZ.000001"
+    assert tool_recorded.fact_type == "indicator"
+    assert restored.ledger.query("price")[0].source_field == "last_price"
+    assert restored.ledger.query("turnover_rate")[0].observed_at == "2026-07-15T09:30:00+08:00"
+
+
 def _temp_dir() -> Path:
     path = Path(".tmp") / "test_fact_gate_runtime" / uuid4().hex
     path.mkdir(parents=True, exist_ok=True)

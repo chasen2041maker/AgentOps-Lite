@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 from pathlib import Path
+from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from groundguard.core.checker import Checker
 from groundguard.core.config import GroundGuardConfig, load_config
 from groundguard.core.extractors import extractors_for_packs
 from groundguard.core.ledger import Clock, Ledger
@@ -64,6 +66,11 @@ class FactGate:
         raw: Any = None,
         confidence: float = 1.0,
         metadata: dict[str, Any] | None = None,
+        subject: str | None = None,
+        as_of: str | None = None,
+        observed_at: str | None = None,
+        source_field: str | None = None,
+        fact_type: str | None = None,
     ) -> Fact:
         fact = Fact(
             id=f"fact_{key}_{uuid4().hex}",
@@ -77,6 +84,11 @@ class FactGate:
             raw=raw,
             confidence=confidence,
             metadata=metadata or {},
+            subject=subject,
+            as_of=as_of,
+            observed_at=observed_at,
+            source_field=source_field,
+            fact_type=fact_type,
         )
         self.ledger.register_fact(fact)
         return self.ledger.query(key)[-1]
@@ -93,6 +105,11 @@ class FactGate:
         raw: Any = None,
         confidence: float = 1.0,
         metadata: dict[str, Any] | None = None,
+        subject: str | None = None,
+        as_of: str | None = None,
+        observed_at: str | None = None,
+        source_field: str | None = None,
+        fact_type: str | None = None,
     ) -> Fact:
         """Record one numeric tool result using the compact public API."""
 
@@ -106,6 +123,11 @@ class FactGate:
             raw=raw,
             confidence=confidence,
             metadata=metadata,
+            subject=subject,
+            as_of=as_of,
+            observed_at=observed_at,
+            source_field=source_field,
+            fact_type=fact_type,
         )
 
     def check(
@@ -115,6 +137,8 @@ class FactGate:
         required_fact_keys: list[str] | None = None,
         policy: Policy | None = None,
         extractors: ExtractorCollection | None = None,
+        checkers: Sequence[Checker] | None = None,
+        context: Mapping[str, Any] | None = None,
     ) -> CoverageReport:
         active_required = required if required is not None else required_fact_keys
         if active_required is None:
@@ -127,6 +151,8 @@ class FactGate:
             policy=active_policy,
             extractors=active_extractors,
             tolerance=self.config.units.tolerance,
+            checkers=checkers,
+            context=context,
         )
 
     def to_jsonl(self, path: str | Path) -> None:

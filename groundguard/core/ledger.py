@@ -6,8 +6,10 @@ import time
 from dataclasses import asdict, replace
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable
+from collections.abc import Mapping, Sequence
+from typing import Any, Callable
 
+from groundguard.core.checker import CheckRequest, Checker, apply_issues, run_checkers
 from groundguard.core.models import CoverageReport, Fact, RequiredFact
 from groundguard.core.output_claim_extractor import ExtractorCollection
 from groundguard.core.policy import Policy
@@ -90,6 +92,8 @@ class Ledger:
         policy: Policy | None = None,
         extractors: ExtractorCollection | None = None,
         tolerance: float = 0.005,
+        checkers: Sequence[Checker] | None = None,
+        context: Mapping[str, Any] | None = None,
     ) -> CoverageReport:
         from groundguard.core.coverage import build_coverage_report
         from groundguard.core.matcher import match_claims
@@ -115,7 +119,18 @@ class Ledger:
             allow_candidate_matches=active_policy.allow_candidate_matches,
             suspected_numbers=suspected_numbers,
         )
-        return evaluate_policy(report, active_policy)
+        policy_report = evaluate_policy(report, active_policy)
+        if not checkers:
+            return policy_report
+        request = CheckRequest(
+            answer=answer,
+            claims=tuple(output_claims),
+            facts=tuple(facts),
+            suspected_numbers=tuple(suspected_numbers),
+            uncovered_numbers=tuple(report.uncovered_numbers),
+            context=context or {},
+        )
+        return apply_issues(policy_report, run_checkers(checkers, request))
 
     def _append_fact(self, fact: Fact) -> None:
         self._facts.append(fact)
@@ -153,6 +168,11 @@ def _fact_from_jsonable(payload: dict[str, object]) -> Fact:
         confidence=float(payload.get("confidence", 1.0)),
         metadata=_dict_or_empty(payload.get("metadata")),
         schema_version=int(payload.get("schema_version", 1)),
+        subject=_optional_str(payload.get("subject")),
+        as_of=_optional_str(payload.get("as_of")),
+        observed_at=_optional_str(payload.get("observed_at")),
+        source_field=_optional_str(payload.get("source_field")),
+        fact_type=_optional_str(payload.get("fact_type")),
     )
 
 

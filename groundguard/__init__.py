@@ -1,4 +1,5 @@
 from groundguard.core.coverage import build_coverage_report
+from groundguard.core.checker import CheckRequest, Checker
 from groundguard.core.config import ExtractorConfig, GroundGuardConfig, ReportConfig, UnitConfig, load_config
 from groundguard.core.extractors import available_extractor_packs, extractors_for_packs
 from groundguard.core.ledger import Ledger
@@ -8,6 +9,7 @@ from groundguard.core.models import (
     CoverageReport,
     DatasetCase,
     Fact,
+    Issue,
     OutputClaim,
     RequiredFact,
     SuspectedNumber,
@@ -36,11 +38,14 @@ from groundguard.runtime import FactGate
 __all__ = [
     "AssertionReport",
     "CoverageReport",
+    "CheckRequest",
+    "Checker",
     "DatasetCase",
     "Extractor",
     "ExtractorCollection",
     "ExtractorConfig",
     "Fact",
+    "Issue",
     "FactGate",
     "GroundedResult",
     "GroundingPolicyError",

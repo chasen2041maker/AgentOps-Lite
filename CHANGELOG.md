@@ -2,6 +2,33 @@
 
 All notable changes to GroundGuard will be documented in this file.
 
+## v0.4.0rc1 - 2026-07-15
+
+### Added
+
+- Added a synchronous, request-scoped `Checker` protocol, immutable
+  `CheckRequest`, structured `Issue` findings, and enriched `Fact` context
+  fields for subject and observation metadata.
+- Added deterministic issue output to `groundguard.report.v1`, assertion
+  metadata, Markdown, HTML, and GitHub renderers without changing the report
+  schema version.
+- Added opt-in `OrphanNumberChecker` and `RelativeFreshnessChecker`. They reuse
+  existing extraction transparency and explicit fact groups rather than adding
+  another matcher or using wall-clock time.
+- Added an opt-in `groundguard.rules.finance_cn` package for explicit SSE/SZSE
+  consistency checks and normal-phase price-limit checks.
+
+### Fixed
+
+- Prevented standard dot-separated stock codes from being reported as orphan
+  numbers: `SH.600519`, `SZ.000001`, `SSE.600519`, and `SZSE.000001`.
+
+### Release Candidate
+
+- This release candidate is for downstream integration validation.
+- `finance_cn` supports only explicitly supplied SSE/SZSE context. It does not
+  support BSE, Hong Kong, US, or other markets.
+
 ## v0.3.1 - 2026-07-07
 
 ### Added

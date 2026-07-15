@@ -19,13 +19,13 @@ Works with OpenAI | LangChain | LangGraph | PydanticAI | CrewAI | AutoGen | Fast
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 [![Discussions](https://img.shields.io/github/discussions/chasen2041maker/GroundGuard)](https://github.com/chasen2041maker/GroundGuard/discussions)
 
-[PyPI](https://pypi.org/project/groundguard-ai/) | [Docs](docs/index.md) |
-[Examples](examples) | [Benchmark](benchmarks) |
+[PyPI](https://pypi.org/project/groundguard-ai/) | [Docs](https://chasen2041maker.github.io/GroundGuard/) |
+[Examples](https://github.com/chasen2041maker/GroundGuard/tree/main/examples) | [Benchmark](https://github.com/chasen2041maker/GroundGuard/tree/main/benchmarks) |
 [Releases](https://github.com/chasen2041maker/GroundGuard/releases) |
-[Roadmap](PLAN.md) | [Discussions](https://github.com/chasen2041maker/GroundGuard/discussions) |
-[Contributing](CONTRIBUTING.md)
+[Roadmap](https://github.com/chasen2041maker/GroundGuard/blob/main/PLAN.md) | [Discussions](https://github.com/chasen2041maker/GroundGuard/discussions) |
+[Contributing](https://github.com/chasen2041maker/GroundGuard/blob/main/CONTRIBUTING.md)
 
-English | [Chinese README](README.zh-CN.md)
+English | [Chinese README](https://github.com/chasen2041maker/GroundGuard/blob/main/README.zh-CN.md)
 
 </div>
 
@@ -47,7 +47,7 @@ release.
 
 <div align="center">
 
-<img src="assets/demo.gif" alt="GroundGuard demo: omitted required facts blocked in red, corrected answer verified in green" width="880">
+<img src="https://raw.githubusercontent.com/chasen2041maker/GroundGuard/main/assets/demo.gif" alt="GroundGuard demo: omitted required facts blocked in red, corrected answer verified in green" width="880">
 
 </div>
 
@@ -99,7 +99,10 @@ groundguard-benchmark
 ```
 
 The PyPI distribution name is `groundguard-ai`; the Python import name remains
-`groundguard`. Latest PyPI release: `0.3.1`.
+`groundguard`.
+
+- Latest stable release: `0.3.1`
+- Current pre-release: `0.4.0rc1`
 
 ## 10-Second Demo
 
@@ -162,12 +165,81 @@ omitted_required: 0
 - A composite GitHub Action for CI fact gates.
 - A tiny dependency-free HTTP server entrypoint for gateway-style checks.
 
+## Deterministic Checkers
+
+`0.4.0rc1` adds request-scoped, synchronous checkers that are passed explicitly
+to one `FactGate.check(...)` call. They are not globally registered and do not
+call a network, database, or LLM.
+
+This release candidate adds:
+
+- the `Checker` protocol and structured `Issue` findings;
+- `Fact` context fields for `subject`, `as_of`, `observed_at`, `source_field`,
+  and `fact_type`;
+- `OrphanNumberChecker` and `RelativeFreshnessChecker`;
+- opt-in `groundguard.rules.finance_cn` checks; and
+- backward-compatible `issues`, `hard_issue_count`, and `soft_issue_count`
+  additions to `groundguard.report.v1` output.
+
+An `Issue` with `severity="hard"` changes the report to `passed=false`; a
+`severity="soft"` issue is diagnostic and leaves the prior pass/fail result
+unchanged.
+
+```python
+from decimal import Decimal
+
+from groundguard import FactGate
+from groundguard.checkers import OrphanNumberChecker
+from groundguard.rules.finance_cn import PriceDirectionChecker, PriceLimitChecker
+
+gate = FactGate(session_id="synthetic_quote")
+gate.record_tool_result("price", Decimal("10.50"), "CNY", subject="600000")
+gate.record_tool_result("previous_close", Decimal("10.00"), "CNY", subject="600000")
+gate.record_tool_result("change_pct", Decimal("5.00"), "%", subject="600000")
+
+report = gate.check(
+    "Synthetic quote checked.",
+    checkers=(
+        OrphanNumberChecker(),
+        PriceDirectionChecker(),
+        PriceLimitChecker(),
+    ),
+    context={
+        "finance_cn": {
+            "exchange": "SSE",
+            "board": "main",
+            "listing_phase": "normal",
+            "trade_date": "2026-07-15",
+            "subject": "600000",
+        }
+    },
+)
+
+assert report.passed
+assert report.issues == ()
+```
+
+This example uses synthetic data. `finance_cn` is opt-in: import and construct
+its checkers only when the caller provides explicit market context. It supports
+SSE/SZSE main boards, SSE STAR, and SZSE ChiNext rules in this release. Missing
+required context skips the hard price-limit calculation and produces only a
+soft insufficient-context diagnostic. BSE, Hong Kong, US, and other markets
+are intentionally unsupported. See the [limitations](https://chasen2041maker.github.io/GroundGuard/limitations/)
+for source links, effective dates, and the 0.01 CNY half-up price-tick
+calculation boundary.
+
 ## Installation
 
-Install the GitHub tag directly:
+Install the latest stable release:
 
 ```bash
 python -m pip install groundguard-ai
+```
+
+Install the current release candidate exactly:
+
+```bash
+python -m pip install --pre groundguard-ai==0.4.0rc1
 ```
 
 For local development:
@@ -447,8 +519,8 @@ continue to read older payloads.
 
 Published schema files:
 
-- [`schemas/groundguard.report.v1.schema.json`](schemas/groundguard.report.v1.schema.json)
-- [`schemas/groundguard.config.v1.schema.json`](schemas/groundguard.config.v1.schema.json)
+- [`groundguard.report.v1`](https://github.com/chasen2041maker/GroundGuard/blob/main/schemas/groundguard.report.v1.schema.json)
+- [`groundguard.config.v1`](https://github.com/chasen2041maker/GroundGuard/blob/main/schemas/groundguard.config.v1.schema.json)
 
 ## GitHub Action
 
@@ -466,8 +538,7 @@ Use the composite action in another repository:
     fail-on-policy: "true"
 ```
 
-For a PR comment example, see
-[`docs/examples/github-actions/pr-comment.yml`](docs/examples/github-actions/pr-comment.yml).
+For a PR comment example, see the [GitHub Actions PR-comment example](https://github.com/chasen2041maker/GroundGuard/blob/main/docs/examples/github-actions/pr-comment.yml).
 
 ## Adapters
 
@@ -547,6 +618,8 @@ python examples/openai_demo/run.py --live-openai
   or OpenTelemetry instead.
 - Not an LLM-as-judge or general hallucination detector; it checks deterministic
   ledger-vs-answer assertions.
+- It does not call a second LLM by default, including when deterministic
+  checkers are enabled.
 - Not a database or hosted service; it runs locally, and important numbers need
   a unit, magnitude, or fact marker to be checked.
 
@@ -565,20 +638,20 @@ python examples/openai_demo/run.py --live-openai
 
 ## Documentation
 
-- [Docs home](docs/index.md)
-- [Getting started](docs/getting-started.md)
-- [CLI and config](docs/cli.md)
-- [Recipes](docs/recipes.md)
-- [Comparisons](docs/comparisons.md)
-- [Production guide](docs/production.md)
-- [Benchmark](docs/benchmark.md)
-- [Good first issues](docs/good-first-issues.md)
-- [Architecture](ARCHITECTURE.md)
-- [Financial report demo](examples/financial_report_demo/README.md)
-- [Brand assets](assets/brand/README.md)
-- [Launch kit](docs/launch/README.md)
-- [Changelog](CHANGELOG.md)
-- [Contributing guide](CONTRIBUTING.md)
+- [Docs home](https://chasen2041maker.github.io/GroundGuard/)
+- [Getting started](https://chasen2041maker.github.io/GroundGuard/getting-started/)
+- [CLI and config](https://chasen2041maker.github.io/GroundGuard/cli/)
+- [Recipes](https://chasen2041maker.github.io/GroundGuard/recipes/)
+- [Comparisons](https://chasen2041maker.github.io/GroundGuard/comparisons/)
+- [Production guide](https://chasen2041maker.github.io/GroundGuard/production/)
+- [Benchmark](https://chasen2041maker.github.io/GroundGuard/benchmark/)
+- [Good first issues](https://chasen2041maker.github.io/GroundGuard/good-first-issues/)
+- [Architecture](https://github.com/chasen2041maker/GroundGuard/blob/main/ARCHITECTURE.md)
+- [Financial report demo](https://github.com/chasen2041maker/GroundGuard/tree/main/examples/financial_report_demo)
+- [Brand assets](https://github.com/chasen2041maker/GroundGuard/tree/main/assets/brand)
+- [Launch kit](https://github.com/chasen2041maker/GroundGuard/tree/main/docs/launch)
+- [Changelog](https://github.com/chasen2041maker/GroundGuard/blob/main/CHANGELOG.md)
+- [Contributing guide](https://github.com/chasen2041maker/GroundGuard/blob/main/CONTRIBUTING.md)
 
 ## Security
 
@@ -595,9 +668,9 @@ Contributions are welcome, especially:
 - framework integration examples
 - API design feedback
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a larger pull
-request.
+Please read the [contributing guide](https://github.com/chasen2041maker/GroundGuard/blob/main/CONTRIBUTING.md)
+before opening a larger pull request.
 
 ## License
 
-GroundGuard is released under the [MIT License](LICENSE).
+GroundGuard is released under the [MIT License](https://github.com/chasen2041maker/GroundGuard/blob/main/LICENSE).

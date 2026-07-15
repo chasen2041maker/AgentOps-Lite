@@ -21,6 +21,63 @@ def test_fact_defaults_capture_registered_fact_metadata():
     assert fact.ttl_seconds is None
     assert fact.confidence == 1.0
     assert fact.metadata == {}
+    assert fact.subject is None
+    assert fact.as_of is None
+    assert fact.observed_at is None
+    assert fact.source_field is None
+    assert fact.fact_type is None
+
+
+def test_fact_context_fields_are_optional_and_preserve_legacy_construction():
+    from groundguard import Fact
+
+    legacy_fact = Fact(
+        id="fact_legacy",
+        source_tool="tool",
+        source_call_id="call",
+        key="price",
+        value=Decimal("10"),
+    )
+    enriched_fact = Fact(
+        id="fact_enriched",
+        source_tool="market_data",
+        source_call_id="call_2",
+        key="price",
+        value=Decimal("123.45"),
+        subject="SH.600519",
+        as_of="2026-07-15",
+        observed_at="2026-07-15T09:30:00+08:00",
+        source_field="last_price",
+        fact_type="quote",
+    )
+
+    assert legacy_fact.subject is None
+    assert enriched_fact.subject == "SH.600519"
+    assert enriched_fact.as_of == "2026-07-15"
+    assert enriched_fact.observed_at == "2026-07-15T09:30:00+08:00"
+    assert enriched_fact.source_field == "last_price"
+    assert enriched_fact.fact_type == "quote"
+
+
+def test_fact_observed_at_requires_timezone_aware_iso_8601_timestamp():
+    from groundguard import Fact
+    import pytest
+
+    common = {
+        "id": "fact_time",
+        "source_tool": "tool",
+        "source_call_id": "call",
+        "key": "price",
+        "value": Decimal("10"),
+    }
+
+    accepted = Fact(**common, observed_at="2026-07-15T09:30:00+08:00")
+    assert accepted.observed_at == "2026-07-15T09:30:00+08:00"
+
+    with pytest.raises(ValueError, match="observed_at"):
+        Fact(**common, observed_at="not-a-time")
+    with pytest.raises(ValueError, match="observed_at"):
+        Fact(**common, observed_at="2026-07-15T09:30:00")
 
 
 def test_required_fact_defaults_to_required_severity():
@@ -68,3 +125,6 @@ def test_coverage_report_counts_start_at_zero():
     assert report.omitted_required_count == 0
     assert report.passed is True
     assert report.policy_reason == ""
+    assert report.issues == ()
+    assert report.hard_issue_count == 0
+    assert report.soft_issue_count == 0

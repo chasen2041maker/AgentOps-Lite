@@ -1,6 +1,22 @@
 from decimal import Decimal
 
 
+def _sample_issue():
+    from groundguard import Issue
+
+    return Issue(
+        code="orphan_numeric_claim",
+        severity="hard",
+        message="Numeric claim is not covered by a recorded fact.",
+        checker="orphan_numeric",
+        related_claim_ids=("claim_1",),
+        text_span="$4.00 billion",
+        start=18,
+        end=31,
+        details={"unit": "USD"},
+    )
+
+
 def test_versioned_report_schema_flattens_claims_for_tools():
     from groundguard import CoverageReport, OutputClaim
     from groundguard.report import report_to_versioned_dict
@@ -25,6 +41,9 @@ def test_versioned_report_schema_flattens_claims_for_tools():
         ],
         verified_count=1,
         passed=True,
+        issues=(_sample_issue(),),
+        hard_issue_count=1,
+        soft_issue_count=0,
     )
 
     payload = report_to_versioned_dict(report)
@@ -38,6 +57,22 @@ def test_versioned_report_schema_flattens_claims_for_tools():
     assert payload["claims"][0]["answer_value"] == "3830000000"
     assert payload["claims"][0]["start"] == 12
     assert payload["claims"][0]["end"] == 25
+    assert payload["summary"]["hard_issue_count"] == 1
+    assert payload["summary"]["soft_issue_count"] == 0
+    assert payload["issues"] == [
+        {
+            "code": "orphan_numeric_claim",
+            "severity": "hard",
+            "message": "Numeric claim is not covered by a recorded fact.",
+            "checker": "orphan_numeric",
+            "related_fact_keys": [],
+            "related_claim_ids": ["claim_1"],
+            "text_span": "$4.00 billion",
+            "start": 18,
+            "end": 31,
+            "details": {"unit": "USD"},
+        }
+    ]
 
 
 def test_markdown_html_and_github_comment_render_report_claims():
@@ -68,6 +103,8 @@ def test_markdown_html_and_github_comment_render_report_claims():
         contradicted_count=1,
         passed=False,
         policy_reason="contradicted_count=1 > max_contradicted=0",
+        issues=(_sample_issue(),),
+        hard_issue_count=1,
     )
 
     markdown = render_markdown_report(report)
@@ -82,6 +119,10 @@ def test_markdown_html_and_github_comment_render_report_claims():
     assert "Ledger value" in html
     assert "GroundGuard Fact Gate" in comment
     assert "contradicted_count=1" in comment
+    assert "orphan_numeric_claim" in markdown
+    assert "Numeric claim is not covered" in markdown
+    assert "orphan_numeric_claim" in html
+    assert "orphan_numeric_claim" in comment
 
 
 def test_matcher_populates_structured_ledger_and_answer_values():
