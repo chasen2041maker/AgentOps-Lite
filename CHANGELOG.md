@@ -18,10 +18,14 @@ All notable changes to GroundGuard will be documented in this file.
 - Added an opt-in `groundguard.rules.finance_cn` package for explicit SSE/SZSE
   consistency checks and normal-phase price-limit checks.
 
-### Limits
+### Fixed
 
-- This release candidate is prepared for local wheel verification only. It has
-  not been uploaded to PyPI.
+- Prevented standard dot-separated stock codes from being reported as orphan
+  numbers: `SH.600519`, `SZ.000001`, `SSE.600519`, and `SZSE.000001`.
+
+### Release Candidate
+
+- This release candidate is for downstream integration validation.
 - `finance_cn` supports only explicitly supplied SSE/SZSE context. It does not
   support BSE, Hong Kong, US, or other markets.
 
