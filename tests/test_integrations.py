@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from groundguard import Issue
+
 
 def _sample_report():
     from groundguard import CoverageReport, OutputClaim
@@ -22,6 +24,15 @@ def _sample_report():
         contradicted_count=1,
         passed=False,
         policy_reason="contradicted_count=1 > max_contradicted=0",
+        issues=(
+            Issue(
+                code="orphan_numeric_claim",
+                severity="hard",
+                message="Numeric claim is not covered by a recorded fact.",
+                checker="orphan_numeric",
+            ),
+        ),
+        hard_issue_count=1,
     )
 
 
@@ -35,6 +46,7 @@ def test_promptfoo_adapter_returns_assertion_payload_with_components():
     assert payload["componentResults"][0]["pass"] is False
     assert payload["componentResults"][0]["metadata"]["status"] == "contradicted"
     assert payload["namedScores"]["groundguard.contradicted_count"] == 1
+    assert payload["metadata"]["groundguard"]["issues"][0]["code"] == "orphan_numeric_claim"
 
 
 def test_deepeval_adapter_returns_metric_result_without_optional_dependency():
@@ -46,4 +58,5 @@ def test_deepeval_adapter_returns_metric_result_without_optional_dependency():
     assert payload["score"] == 0.0
     assert payload["reason"] == "contradicted_count=1 > max_contradicted=0"
     assert payload["metadata"]["groundguard"]["session_id"] == "req_001"
+    assert payload["metadata"]["groundguard"]["issues"][0]["severity"] == "hard"
 

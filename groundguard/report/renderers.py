@@ -21,6 +21,7 @@ def render_markdown_report(report: CoverageReport) -> str:
         f"- Contradicted: `{summary['contradicted_count']}`",
         f"- Unverified: `{summary['unverified_count']}`",
         f"- Omitted required: `{summary['omitted_required_count']}`",
+        f"- Checker issues: `{summary['hard_issue_count']}` hard, `{summary['soft_issue_count']}` soft",
         "",
         "| Status | Claim | Unit | Matched fact | Ledger value | Answer value | Span | Diff |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -45,6 +46,34 @@ def render_markdown_report(report: CoverageReport) -> str:
         )
     if not payload["claims"]:
         lines.append("| none |  |  |  |  |  |  |  |")
+    if payload["issues"]:
+        lines.extend(
+            [
+                "",
+                "## Checker Issues",
+                "",
+                "| Severity | Code | Checker | Message | Facts | Claims | Span |",
+                "| --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for issue in payload["issues"]:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _md(str(issue["severity"])),
+                        _md(str(issue["code"])),
+                        _md(str(issue["checker"])),
+                        _md(str(issue["message"])),
+                        _md(", ".join(str(key) for key in issue["related_fact_keys"])
+                        ),
+                        _md(", ".join(str(claim) for claim in issue["related_claim_ids"])
+                        ),
+                        _md(_span(issue.get("start"), issue.get("end"))),
+                    ]
+                )
+                + " |"
+            )
     return "\n".join(lines) + "\n"
 
 
@@ -81,6 +110,19 @@ def render_html_report(report: CoverageReport) -> str:
         )
     if not rows:
         rows.append("<tr><td>none</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>")
+    issue_rows = []
+    for issue in payload["issues"]:
+        issue_rows.append(
+            "<tr>"
+            f"<td>{escape(str(issue['severity']))}</td>"
+            f"<td>{escape(str(issue['code']))}</td>"
+            f"<td>{escape(str(issue['checker']))}</td>"
+            f"<td>{escape(str(issue['message']))}</td>"
+            f"<td>{escape(', '.join(str(key) for key in issue['related_fact_keys']))}</td>"
+            f"<td>{escape(', '.join(str(claim) for claim in issue['related_claim_ids']))}</td>"
+            f"<td>{escape(_span(issue.get('start'), issue.get('end')))}</td>"
+            "</tr>"
+        )
     return (
         "<!doctype html>\n"
         "<html><head><meta charset=\"utf-8\"><title>GroundGuard Report</title>"
@@ -92,11 +134,23 @@ def render_html_report(report: CoverageReport) -> str:
         f"<p><strong>Session:</strong> {escape(str(payload['session_id']))}</p>"
         f"<p><strong>Passed:</strong> {escape(str(summary['passed']))}</p>"
         f"<p><strong>Policy reason:</strong> {escape(str(summary['policy_reason'] or 'none'))}</p>"
+        f"<p><strong>Checker issues:</strong> {summary['hard_issue_count']} hard, {summary['soft_issue_count']} soft</p>"
         "<table><thead><tr><th>Status</th><th>Claim</th><th>Unit</th>"
         "<th>Matched fact</th><th>Ledger value</th><th>Answer value</th>"
         "<th>Span</th><th>Diff</th></tr></thead><tbody>"
         + "".join(rows)
-        + "</tbody></table></body></html>\n"
+        + "</tbody></table>"
+        + (
+            "<h2>Checker Issues</h2>"
+            "<table><thead><tr><th>Severity</th><th>Code</th><th>Checker</th>"
+            "<th>Message</th><th>Facts</th><th>Claims</th><th>Span</th>"
+            "</tr></thead><tbody>"
+            + "".join(issue_rows)
+            + "</tbody></table>"
+            if issue_rows
+            else ""
+        )
+        + "</body></html>\n"
     )
 
 

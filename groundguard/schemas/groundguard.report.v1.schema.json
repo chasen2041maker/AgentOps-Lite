@@ -26,6 +26,12 @@
         "$ref": "#/$defs/output_claim"
       }
     },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/issue"
+      }
+    },
     "required_facts": {
       "type": "array",
       "items": {
@@ -97,6 +103,75 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "hard_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "soft_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "checker"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "hard",
+            "soft"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "checker": {
+          "type": "string"
+        },
+        "related_fact_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_claim_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "text_span": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
         }
       }
     },
